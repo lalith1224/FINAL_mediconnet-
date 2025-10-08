@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediConnect - Healthcare Management System</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/chatbot.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar" id="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>MediConnect</span>
+                </div>
+                <div class="nav-menu" id="nav-menu">
+                    <div class="nav-item" id="auth-section">
+                        <button class="btn btn-primary" onclick="showLogin()">Login</button>
+                        <button class="btn btn-outline" onclick="showRegister()">Register</button>
+                    </div>
+                    <div class="nav-item" id="user-section" style="display: none;">
+                        <span id="user-name"></span>
+                        <button class="btn btn-outline" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Landing Page -->
+            <div id="landing-page" class="page">
+                <section class="hero">
+                    <div class="hero-content">
+                        <h1>Welcome to MediConnect</h1>
+                        <p>Your comprehensive healthcare management solution connecting patients, doctors, and pharmacies.</p>
+                        <div class="hero-buttons">
+                            <button class="btn btn-primary btn-large" onclick="showLogin()">Get Started</button>
+                            <button class="btn btn-outline btn-large" onclick="showRegister()">Join Now</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="features">
+                    <div class="container">
+                        <h2>Our Services</h2>
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <i class="fas fa-user-md"></i>
+                                <h3>For Patients</h3>
+                                <p>Book appointments, manage prescriptions, and access your medical records.</p>
+                            </div>
+                            <div class="feature-card">
+                                <i class="fas fa-stethoscope"></i>
+                                <h3>For Doctors</h3>
+                                <p>Manage appointments, create prescriptions, and track patient care.</p>
+                            </div>
+                            <div class="feature-card">
+                                <i class="fas fa-pills"></i>
+                                <h3>For Pharmacies</h3>
+                                <p>Manage inventory, process prescriptions, and serve patients efficiently.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Login Page -->
+            <div id="login-page" class="page" style="display: none;">
+                <div class="auth-container">
+                    <div class="auth-card">
+                        <h2>Login to MediConnect</h2>
+                        <form id="login-form">
+                            <div class="form-group">
+                                <label for="login-email">Email</label>
+                                <input type="email" id="login-email" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="login-password">Password</label>
+                                <input type="password" id="login-password" name="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-full">Login</button>
+                        </form>
+                        <p class="auth-switch">
+                            Don't have an account? <a href="#" onclick="showRegister()">Register here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Register Page -->
+            <div id="register-page" class="page" style="display: none;">
+                <div class="auth-container">
+                    <div class="auth-card">
+                        <h2>Register for MediConnect</h2>
+                        <form id="register-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="register-firstName">First Name</label>
+                                    <input type="text" id="register-firstName" name="firstName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-lastName">Last Name</label>
+                                    <input type="text" id="register-lastName" name="lastName" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="register-email">Email</label>
+                                <input type="email" id="register-email" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="register-password">Password</label>
+                                <input type="password" id="register-password" name="password" required minlength="8">
+                            </div>
+                            <div class="form-group">
+                                <label for="register-role">Role</label>
+                                <select id="register-role" name="role" required onchange="toggleRoleFields()">
+                                    <option value="">Select Role</option>
+                                    <option value="PATIENT">Patient</option>
+                                    <option value="DOCTOR">Doctor</option>
+                                    <option value="PHARMACY">Pharmacy</option>
+                                </select>
+                            </div>
+
+                            <!-- Patient Fields -->
+                            <div id="patient-fields" class="role-fields" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="register-dateOfBirth">Date of Birth</label>
+                                        <input type="date" id="register-dateOfBirth" name="dateOfBirth">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="register-gender">Gender</label>
+                                        <select id="register-gender" name="gender">
+                                            <option value="">Select Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-phone">Phone</label>
+                                    <input type="tel" id="register-phone" name="phone">
+                                </div>
+                            </div>
+
+                            <!-- Doctor Fields -->
+                            <div id="doctor-fields" class="role-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="register-licenseNumber">License Number</label>
+                                    <input type="text" id="register-licenseNumber" name="licenseNumber">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="register-specialization">Specialization</label>
+                                        <input type="text" id="register-specialization" name="specialization">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="register-experience">Experience (years)</label>
+                                        <input type="number" id="register-experience" name="experience" min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pharmacy Fields -->
+                            <div id="pharmacy-fields" class="role-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="register-pharmacyName">Pharmacy Name</label>
+                                    <input type="text" id="register-pharmacyName" name="pharmacyName">
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-address">Address</label>
+                                    <textarea id="register-address" name="address" rows="3"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-pharmacyPhone">Phone</label>
+                                    <input type="tel" id="register-pharmacyPhone" name="phone">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-full">Register</button>
+                        </form>
+                        <p class="auth-switch">
+                            Already have an account? <a href="#" onclick="showLogin()">Login here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Pages -->
+            <div id="patient-dashboard" class="page dashboard" style="display: none;">
+                <div class="dashboard-header">
+                    <h1>Patient Dashboard</h1>
+                    <p>Welcome back, <span id="patient-name"></span></p>
+                    <button class="btn btn-primary" onclick="showBookAppointment()">Book Appointment</button>
+                </div>
+                <div class="dashboard-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-calendar-check"></i>
+                            <div class="stat-info">
+                                <h3 id="patient-appointments-count">0</h3>
+                                <p>Total Appointments</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-clock"></i>
+                            <div class="stat-info">
+                                <h3 id="patient-upcoming-count">0</h3>
+                                <p>Upcoming Appointments</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="stat-info">
+                                <h3 id="patient-completed-count">0</h3>
+                                <p>Completed Appointments</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-prescription-bottle"></i>
+                            <div class="stat-info">
+                                <h3 id="patient-prescriptions-count">0</h3>
+                                <p>Active Prescriptions</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-sections">
+                        <section class="dashboard-section">
+                            <h2>Upcoming Appointments</h2>
+                            <div id="patient-upcoming-appointments" class="appointments-list">
+                                <!-- Upcoming appointments will be loaded here -->
+                            </div>
+                        </section>
+                        <section class="dashboard-section">
+                            <h2>All Appointments</h2>
+                            <div id="patient-appointments" class="appointments-list">
+                                <!-- All appointments will be loaded here -->
+                            </div>
+                        </section>
+                        <section class="dashboard-section">
+                            <h2>Recent Prescriptions</h2>
+                            <div id="patient-prescriptions" class="prescriptions-list">
+                                <!-- Prescriptions will be loaded here -->
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <div id="doctor-dashboard" class="page dashboard" style="display: none;">
+                <div class="dashboard-header">
+                    <h1>Doctor Dashboard</h1>
+                    <p>Welcome back, Dr. <span id="doctor-name"></span></p>
+                </div>
+                <div class="dashboard-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-calendar-day"></i>
+                            <div class="stat-info">
+                                <h3 id="doctor-today-appointments">0</h3>
+                                <p>Today's Appointments</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <div class="stat-info">
+                                <h3 id="doctor-patients-count">0</h3>
+                                <p>Total Patients</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-sections">
+                        <section class="dashboard-section">
+                            <h2>Today's Appointments</h2>
+                            <div id="doctor-appointments" class="appointments-list">
+                                <!-- Appointments will be loaded here -->
+                            </div>
+                        </section>
+                        <section class="dashboard-section">
+                            <h2>All Appointments</h2>
+                            <div id="doctor-all-appointments" class="appointments-list">
+                                <!-- All appointments will be loaded here -->
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pharmacy-dashboard" class="page dashboard" style="display: none;">
+                <div class="dashboard-header">
+                    <h1>Pharmacy Dashboard</h1>
+                    <p>Welcome back, <span id="pharmacy-name"></span></p>
+                </div>
+                <div class="dashboard-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-prescription"></i>
+                            <div class="stat-info">
+                                <h3 id="pharmacy-pending-prescriptions">0</h3>
+                                <p>Pending Prescriptions</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-boxes"></i>
+                            <div class="stat-info">
+                                <h3 id="pharmacy-inventory-count">0</h3>
+                                <p>Inventory Items</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-sections">
+                        <section class="dashboard-section">
+                            <h2>Pending Prescriptions</h2>
+                            <div id="pharmacy-prescriptions" class="prescriptions-list">
+                                <!-- Prescriptions will be loaded here -->
+                            </div>
+                        </section>
+                        <section class="dashboard-section">
+                            <h2>Low Stock Items</h2>
+                            <div id="pharmacy-low-stock" class="inventory-list">
+                                <!-- Low stock items will be loaded here -->
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Book Appointment Page -->
+            <div id="book-appointment-page" class="page" style="display: none;">
+                <div class="auth-container">
+                    <div class="auth-card">
+                        <h2>Book Appointment</h2>
+                        <form id="book-appointment-form">
+                            <div class="form-group">
+                                <label for="appointment-doctor">Select Doctor</label>
+                                <select id="appointment-doctor" name="doctorId" required>
+                                    <option value="">Choose a doctor...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="appointment-date">Appointment Date</label>
+                                <input type="date" id="appointment-date" name="appointmentDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="appointment-time">Appointment Time</label>
+                                <input type="time" id="appointment-time" name="appointmentTime" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="appointment-type">Appointment Type</label>
+                                <select id="appointment-type" name="appointmentType" required>
+                                    <option value="">Select type...</option>
+                                    <option value="IN_PERSON">In-Person</option>
+                                    <option value="VIDEO">Video Call</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="appointment-reason">Reason for Visit</label>
+                                <textarea id="appointment-reason" name="reason" rows="3" placeholder="Describe your symptoms or reason for the visit..."></textarea>
+                            </div>
+                            <div class="form-buttons">
+                                <button type="button" class="btn btn-outline" onclick="showPatientDashboard()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Book Appointment</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container"></div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/chatbot.js"></script>
+</body>
+</html>
