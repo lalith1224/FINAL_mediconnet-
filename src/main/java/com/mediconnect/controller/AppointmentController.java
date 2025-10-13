@@ -38,6 +38,8 @@ public class AppointmentController {
     @Autowired
     private DoctorService doctorService;
     
+    
+
     @PostMapping("/book")
     public ResponseEntity<?> bookAppointment(@Valid @RequestBody AppointmentBookingRequest request, HttpSession session) {
         try {
@@ -90,7 +92,65 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-    
+
+    @DeleteMapping("/{appointmentId}")
+    public ResponseEntity<?> cancelAppointment(@PathVariable UUID appointmentId, HttpSession session) {
+        try {
+            Optional<User> userOpt = authService.getCurrentUser(session);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(401).body(Map.of("message", "Not authenticated"));
+            }
+
+            Optional<Appointment> appointmentOpt = appointmentService.findById(appointmentId);
+            if (appointmentOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Appointment not found"));
+            }
+
+            Appointment appointment = appointmentOpt.get();
+            User user = userOpt.get();
+
+            boolean authorized = false;
+            if (user.getRole().equals(User.Role.PATIENT)) {
+                authorized = appointment.getPatient().getUser().getId().equals(user.getId());
+            } else if (user.getRole().equals(User.Role.DOCTOR)) {
+                authorized = appointment.getDoctor().getUser().getId().equals(user.getId());
+            }
+
+            if (!authorized) {
+                return ResponseEntity.status(403).body(Map.of("message", "Not authorized to cancel this appointment"));
+            }
+
+            appointmentService.deleteAppointment(appointmentId);
+            return ResponseEntity.ok(Map.of("message", "Appointment cancelled successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/doctor/booked")
+    public ResponseEntity<?> getDoctorBookedAppointments(HttpSession session) {
+        try {
+            Optional<User> userOpt = authService.getCurrentUser(session);
+            if (userOpt.isEmpty() || !userOpt.get().getRole().equals(User.Role.DOCTOR)) {
+                return ResponseEntity.status(401).body(Map.of("message", "Not authenticated as doctor"));
+            }
+
+            Optional<Doctor> doctorOpt = doctorService.findByUserId(userOpt.get().getId());
+            if (doctorOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Doctor profile not found"));
+            }
+
+            List<Appointment> appointments = appointmentService.findByDoctorId(doctorOpt.get().getId());
+            List<AppointmentResponse> response = appointments.stream()
+                .map(this::createAppointmentResponse)
+                .collect(Collectors.toList());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @GetMapping("/my-appointments")
     public ResponseEntity<?> getMyAppointments(HttpSession session) {
         try {
@@ -127,7 +187,7 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-    
+
     @GetMapping("/upcoming")
     public ResponseEntity<?> getUpcomingAppointments(HttpSession session) {
         try {
@@ -164,7 +224,7 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-    
+
     @GetMapping("/doctors")
     public ResponseEntity<?> getAvailableDoctors() {
         try {
@@ -173,19 +233,9 @@ public class AppointmentController {
             List<Map<String, Object>> doctorList = doctors.stream()
                 .map(doctor -> {
                     Map<String, Object> doctorInfo = new HashMap<>();
-                    doctorInfo.put("id", doctor.getId());
-                    doctorInfo.put("name", doctor.getUser().getFirstName() + " " + doctor.getUser().getLastName());
+                    doctorInfo.put("id", doctor.getId().toString());
+                    doctorInfo.put("name", "Dr. " + doctor.getUser().getFirstName() + " " + doctor.getUser().getLastName());
                     doctorInfo.put("specialization", doctor.getSpecialization());
-                    doctorInfo.put("experience", doctor.getExperience());
-                    doctorInfo.put("consultationFee", doctor.getConsultationFee());
-                    
-                    // Add patient count for this doctor
-                    List<Appointment> doctorAppointments = appointmentService.findByDoctorId(doctor.getId());
-                    Set<UUID> uniquePatients = doctorAppointments.stream()
-                        .map(appointment -> appointment.getPatient().getId())
-                        .collect(Collectors.toSet());
-                    doctorInfo.put("patientCount", uniquePatients.size());
-                    
                     return doctorInfo;
                 })
                 .collect(Collectors.toList());
@@ -195,7 +245,7 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-    
+
     @GetMapping("/dashboard-stats")
     public ResponseEntity<?> getDashboardStats(HttpSession session) {
         try {
@@ -241,7 +291,7 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-    
+
     @PutMapping("/{appointmentId}/status")
     public ResponseEntity<?> updateAppointmentStatus(
             @PathVariable UUID appointmentId,
@@ -273,7 +323,7 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-    
+
     @GetMapping("/doctor-availability/{doctorId}")
     public ResponseEntity<?> checkDoctorAvailability(@PathVariable UUID doctorId, @RequestParam String date) {
         try {
@@ -290,7 +340,7 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
-    
+
     private AppointmentResponse createAppointmentResponse(Appointment appointment) {
         AppointmentResponse response = new AppointmentResponse();
         response.setId(appointment.getId());

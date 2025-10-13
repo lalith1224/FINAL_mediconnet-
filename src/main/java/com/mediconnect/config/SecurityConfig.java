@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/", 
                     "/index.html",
+                    "/favicon.ico",
+                    "/error",
                     "/login**",
                     "/logout**",
                     "/register", 
@@ -52,6 +54,8 @@ public class SecurityConfig {
                     "/js/**", 
                     "/images/**",
                     "/static/**",
+                    "/.well-known/**",
+                    "/webjars/**",
                     "/h2-console/**",
                     "/actuator/health",
                     "/v3/api-docs/**",

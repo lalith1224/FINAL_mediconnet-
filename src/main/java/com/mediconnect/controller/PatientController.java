@@ -34,23 +34,67 @@ public class PatientController {
         if (userOpt.isEmpty() || userOpt.get().getRole() != User.Role.PATIENT) {
             return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         }
-        
+
         Optional<Patient> patientOpt = patientService.findByUserId(userOpt.get().getId());
         if (patientOpt.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Patient profile not found"));
         }
-        
+
         Patient patient = patientOpt.get();
+
+        // Build safe DTOs to avoid serializing JPA entities directly
         List<Appointment> upcomingAppointments = appointmentService.findUpcomingByPatientId(patient.getId());
         List<Prescription> activePrescriptions = prescriptionService.findActiveByPatientId(patient.getId());
-        
+
+        List<Map<String, Object>> upcomingDtos = upcomingAppointments.stream().map(appt -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", appt.getId());
+            m.put("appointmentDate", appt.getAppointmentDate());
+            m.put("appointmentType", appt.getAppointmentType());
+            m.put("status", appt.getStatus());
+            m.put("reason", appt.getReason());
+            // Doctor summary
+            Map<String, Object> doctor = new HashMap<>();
+            if (appt.getDoctor() != null && appt.getDoctor().getUser() != null) {
+                doctor.put("firstName", appt.getDoctor().getUser().getFirstName());
+                doctor.put("lastName", appt.getDoctor().getUser().getLastName());
+                doctor.put("specialization", appt.getDoctor().getSpecialization());
+            }
+            m.put("doctor", doctor);
+            return m;
+        }).toList();
+
+        List<Map<String, Object>> prescriptionDtos = activePrescriptions.stream().map(p -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", p.getId());
+            m.put("status", p.getStatus());
+            m.put("createdAt", p.getCreatedAt());
+            // Doctor summary
+            Map<String, Object> doctor = new HashMap<>();
+            if (p.getDoctor() != null && p.getDoctor().getUser() != null) {
+                doctor.put("firstName", p.getDoctor().getUser().getFirstName());
+                doctor.put("lastName", p.getDoctor().getUser().getLastName());
+            }
+            m.put("doctor", doctor);
+            m.put("medicationCount", p.getMedications() != null ? p.getMedications().size() : 0);
+            return m;
+        }).toList();
+
+        Map<String, Object> patientSummary = new HashMap<>();
+        patientSummary.put("id", patient.getId());
+        if (patient.getUser() != null) {
+            patientSummary.put("firstName", patient.getUser().getFirstName());
+            patientSummary.put("lastName", patient.getUser().getLastName());
+            patientSummary.put("email", patient.getUser().getEmail());
+        }
+
         Map<String, Object> dashboard = new HashMap<>();
-        dashboard.put("patient", patient);
-        dashboard.put("upcomingAppointments", upcomingAppointments);
-        dashboard.put("activePrescriptions", activePrescriptions);
+        dashboard.put("patient", patientSummary);
+        dashboard.put("upcomingAppointments", upcomingDtos);
+        dashboard.put("activePrescriptions", prescriptionDtos);
         dashboard.put("totalAppointments", appointmentService.findByPatientId(patient.getId()).size());
         dashboard.put("totalPrescriptions", prescriptionService.findByPatientId(patient.getId()).size());
-        
+
         return ResponseEntity.ok(dashboard);
     }
     

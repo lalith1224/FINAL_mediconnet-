@@ -33,6 +33,10 @@ public class PrescriptionService {
         return prescriptionRepository.findByDoctorId(doctorId);
     }
     
+    public long countByDoctorId(UUID doctorId) {
+        return prescriptionRepository.countByDoctorId(doctorId);
+    }
+    
     public List<Prescription> findByPharmacyId(UUID pharmacyId) {
         return prescriptionRepository.findByPharmacyId(pharmacyId);
     }

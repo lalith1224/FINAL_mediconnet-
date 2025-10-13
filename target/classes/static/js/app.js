@@ -111,84 +111,118 @@ class MediConnectApp {
         }
     }
 
-    // Dashboard Methods
+    // Dashboard Methods - ENHANCED DATA LOADING
     async loadPatientDashboard() {
         try {
-            // Load dashboard stats
-            const statsResponse = await fetch('/api/appointments/dashboard-stats', {
+            console.log('Loading patient dashboard...');
+            
+            // Load comprehensive dashboard data
+            const response = await fetch('/api/patient/dashboard', {
                 credentials: 'include'
             });
-            
-            if (statsResponse.ok) {
-                const stats = await statsResponse.json();
-                this.populatePatientStats(stats);
-            }
 
-            // Load all patient appointments
-            const appointmentsResponse = await fetch('/api/appointments/my-appointments', {
-                credentials: 'include'
-            });
-            
-            if (appointmentsResponse.ok) {
-                const appointments = await appointmentsResponse.json();
-                this.renderPatientAppointments(appointments);
-            }
-
-            // Load upcoming appointments separately
-            const upcomingResponse = await fetch('/api/appointments/upcoming', {
-                credentials: 'include'
-            });
-            
-            if (upcomingResponse.ok) {
-                const upcomingAppointments = await upcomingResponse.json();
-                this.renderPatientUpcomingAppointments(upcomingAppointments);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Patient dashboard data:', data);
+                this.populatePatientDashboard(data);
+                
+                // Load additional data for different sections
+                await this.loadPatientAdditionalData();
+            } else {
+                console.error('Failed to load patient dashboard:', response.status);
+                this.showToast('Failed to load dashboard data', 'error');
+                // Show empty state
+                this.populatePatientDashboard({});
             }
         } catch (error) {
-            console.error('Dashboard load error:', error);
-            this.showToast('Failed to load dashboard', 'error');
+            console.error('Patient dashboard load error:', error);
+            this.showToast('Failed to load dashboard. Please try again.', 'error');
+            // Show empty state
+            this.populatePatientDashboard({});
+        }
+    }
+
+    async loadPatientAdditionalData() {
+        try {
+            // Load appointments
+            const appointmentsResp = await fetch('/api/appointments/my-appointments', {
+                credentials: 'include'
+            });
+            
+            if (appointmentsResp.ok) {
+                const appointments = await appointmentsResp.json();
+                this.renderPatientAppointments(appointments);
+                this.renderPatientUpcomingAppointments(appointments);
+            }
+
+            // Load prescriptions
+            const prescriptionsResp = await fetch('/api/prescriptions/my-prescriptions', {
+                credentials: 'include'
+            });
+            
+            if (prescriptionsResp.ok) {
+                const prescriptions = await prescriptionsResp.json();
+                this.renderPatientPrescriptions(prescriptions);
+            }
+        } catch (error) {
+            console.error('Error loading patient additional data:', error);
         }
     }
 
     async loadDoctorDashboard() {
         try {
-            // Load dashboard stats
-            const statsResponse = await fetch('/api/appointments/dashboard-stats', {
+            console.log('Loading doctor dashboard...');
+            
+            // Load comprehensive dashboard data
+            const response = await fetch('/api/doctor/dashboard', {
                 credentials: 'include'
             });
             
-            if (statsResponse.ok) {
-                const stats = await statsResponse.json();
-                this.populateDoctorStats(stats);
-            }
-
-            // Load doctor's upcoming appointments
-            const upcomingResponse = await fetch('/api/appointments/upcoming', {
-                credentials: 'include'
-            });
-            
-            if (upcomingResponse.ok) {
-                const upcomingAppointments = await upcomingResponse.json();
-                this.renderDoctorAppointments(upcomingAppointments);
-            }
-
-            // Load all doctor's appointments
-            const allResponse = await fetch('/api/appointments/my-appointments', {
-                credentials: 'include'
-            });
-            
-            if (allResponse.ok) {
-                const allAppointments = await allResponse.json();
-                this.renderDoctorAllAppointments(allAppointments);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Doctor dashboard data:', data);
+                this.populateDoctorDashboard(data);
+                
+                // Load additional data
+                await this.loadDoctorAdditionalData();
+            } else {
+                console.error('Failed to load doctor dashboard:', response.status);
+                this.showToast('Failed to load dashboard data', 'error');
+                // Show empty state
+                this.populateDoctorDashboard({});
             }
         } catch (error) {
-            console.error('Dashboard load error:', error);
-            this.showToast('Failed to load dashboard', 'error');
+            console.error('Doctor dashboard load error:', error);
+            this.showToast('Failed to load dashboard. Please try again.', 'error');
+            // Show empty state
+            this.populateDoctorDashboard({});
         }
     }
 
-    populateDoctorStats(stats) {
-        document.getElementById('doctor-today-appointments').textContent = stats.todayAppointments || 0;
-        document.getElementById('doctor-patients-count').textContent = stats.patientCount || 0;
+    async loadDoctorAdditionalData() {
+        try {
+            // Load all appointments for doctor
+            const appointmentsResp = await fetch('/api/appointments/doctor/booked', {
+                credentials: 'include'
+            });
+            
+            if (appointmentsResp.ok) {
+                const appointments = await appointmentsResp.json();
+                this.renderDoctorAllAppointments(appointments);
+            }
+
+            // Load today's appointments specifically
+            const todayResp = await fetch('/api/appointments/doctor/today', {
+                credentials: 'include'
+            });
+            
+            if (todayResp.ok) {
+                const todayAppointments = await todayResp.json();
+                this.renderDoctorTodayAppointments(todayAppointments);
+            }
+        } catch (error) {
+            console.error('Error loading doctor additional data:', error);
+        }
     }
 
     async loadPharmacyDashboard() {
@@ -202,17 +236,343 @@ class MediConnectApp {
                 this.populatePharmacyDashboard(data);
             } else {
                 this.showToast('Failed to load dashboard', 'error');
+                // Show empty state
+                this.populatePharmacyDashboard({});
             }
         } catch (error) {
             console.error('Dashboard load error:', error);
-            this.showToast('Failed to load dashboard', 'error');
+            this.showToast('Failed to load dashboard. Please try again.', 'error');
+            // Show empty state
+            this.populatePharmacyDashboard({});
         }
     }
 
-    populatePatientStats(stats) {
+    // Enhanced UI Population Methods
+    populatePatientDashboard(data) {
+        if (!this.currentUser) return;
+
+        // Update user info
+        document.getElementById('patient-name').textContent = this.currentUser.firstName;
+
+        // Update statistics - with fallback values
+        const stats = data.stats || {};
         document.getElementById('patient-appointments-count').textContent = stats.totalAppointments || 0;
         document.getElementById('patient-upcoming-count').textContent = stats.upcomingAppointments || 0;
         document.getElementById('patient-completed-count').textContent = stats.completedAppointments || 0;
+        document.getElementById('patient-prescriptions-count').textContent = stats.activePrescriptions || 0;
+
+        // Populate upcoming appointments from dashboard data if available
+        const upcomingContainer = document.getElementById('patient-upcoming-appointments');
+        if (data.upcomingAppointments && data.upcomingAppointments.length > 0) {
+            upcomingContainer.innerHTML = data.upcomingAppointments.map(appointment =>
+                this.createPatientAppointmentCard(appointment, false)
+            ).join('');
+        } else {
+            upcomingContainer.innerHTML = this.createEmptyState('No upcoming appointments', 'fas fa-calendar-times');
+        }
+
+        // Populate prescriptions from dashboard data if available
+        const prescriptionsContainer = document.getElementById('patient-prescriptions');
+        if (data.activePrescriptions && data.activePrescriptions.length > 0) {
+            prescriptionsContainer.innerHTML = data.activePrescriptions.map(prescription =>
+                this.createPrescriptionCard(prescription)
+            ).join('');
+        } else {
+            prescriptionsContainer.innerHTML = this.createEmptyState('No active prescriptions', 'fas fa-prescription-bottle');
+        }
+    }
+
+    populateDoctorDashboard(data) {
+        if (!this.currentUser) return;
+
+        // Update user info
+        document.getElementById('doctor-name').textContent = this.currentUser.lastName;
+
+        // Update statistics - with fallback values and proper data structure handling
+        const stats = data.stats || {};
+        document.getElementById('doctor-today-appointments').textContent = stats.todayAppointments || stats.todayPatients || 0;
+        document.getElementById('doctor-patients-count').textContent = stats.totalPatients || stats.patientCount || 0;
+        document.getElementById('doctor-prescriptions-count').textContent = stats.totalPrescriptions || 0;
+        document.getElementById('doctor-pending-reviews').textContent = stats.pendingReviews || 0;
+        document.getElementById('doctor-ai-insights').textContent = stats.aiInsights || 0;
+
+        // Populate today's appointments from dashboard data if available
+        const todayAppointmentsContainer = document.getElementById('doctor-appointments');
+        if (data.todayAppointments && data.todayAppointments.length > 0) {
+            todayAppointmentsContainer.innerHTML = data.todayAppointments.map(appointment =>
+                this.createDoctorAppointmentCard(appointment)
+            ).join('');
+        } else {
+            todayAppointmentsContainer.innerHTML = this.createEmptyState('No appointments today', 'fas fa-calendar-check');
+        }
+
+        // Populate upcoming appointments if available
+        const upcomingContainer = document.getElementById('doctor-upcoming-appointments');
+        if (upcomingContainer && data.upcomingAppointments) {
+            if (data.upcomingAppointments.length > 0) {
+                upcomingContainer.innerHTML = data.upcomingAppointments.map(appointment =>
+                    this.createDoctorAppointmentCard(appointment)
+                ).join('');
+            } else {
+                upcomingContainer.innerHTML = this.createEmptyState('No upcoming appointments', 'fas fa-calendar-alt');
+            }
+        }
+    }
+
+    populatePharmacyDashboard(data) {
+        if (!this.currentUser) return;
+
+        const pharmacy = data.pharmacy || {};
+        document.getElementById('pharmacy-name').textContent = pharmacy.pharmacyName || this.currentUser.pharmacyName || 'Pharmacy';
+
+        // Update statistics
+        document.getElementById('pharmacy-pending-prescriptions').textContent = data.pendingPrescriptionsCount || data.pendingPrescriptions?.length || 0;
+        document.getElementById('pharmacy-inventory-count').textContent = data.totalInventoryItems || 0;
+
+        // Populate pending prescriptions
+        const prescriptionsContainer = document.getElementById('pharmacy-prescriptions');
+        const pendingPrescriptions = data.pendingPrescriptions || [];
+        if (pendingPrescriptions.length > 0) {
+            prescriptionsContainer.innerHTML = pendingPrescriptions.map(prescription => 
+                this.createPrescriptionCard(prescription, true)
+            ).join('');
+        } else {
+            prescriptionsContainer.innerHTML = this.createEmptyState('No pending prescriptions', 'fas fa-prescription');
+        }
+
+        // Populate low stock items
+        const lowStockContainer = document.getElementById('pharmacy-low-stock');
+        const lowStockItems = data.lowStockItems || [];
+        if (lowStockItems.length > 0) {
+            lowStockContainer.innerHTML = lowStockItems.map(item => 
+                this.createInventoryCard(item)
+            ).join('');
+        } else {
+            lowStockContainer.innerHTML = this.createEmptyState('No low stock items', 'fas fa-boxes');
+        }
+    }
+
+    // Enhanced Card Creation Methods
+    createPatientAppointmentCard(appointment, showDetails = false) {
+        const date = new Date(appointment.appointmentDate);
+        const doctorName = appointment.doctor ? 
+            `Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName}` :
+            appointment.doctorName ? 
+                `Dr. ${appointment.doctorName}` : 
+                'Unknown Doctor';
+
+        const specialization = appointment.doctor?.specialization || appointment.doctorSpecialization || 'General';
+        const status = appointment.status || 'SCHEDULED';
+
+        if (showDetails) {
+            return `
+                <div class="appointment-card">
+                    <div class="appointment-info">
+                        <h4>${doctorName}</h4>
+                        <p><strong>Specialization:</strong> ${specialization}</p>
+                        <p><strong>Date & Time:</strong> ${date.toLocaleString()}</p>
+                        <p><strong>Type:</strong> ${appointment.appointmentType || 'IN_PERSON'}</p>
+                        <p><strong>Reason:</strong> ${appointment.reason || 'Not specified'}</p>
+                        <p><strong>Status:</strong> <span class="status ${status.toLowerCase()}">${this.getStatusDisplay(status)}</span></p>
+                        ${appointment.notes ? `<p><strong>Notes:</strong> ${appointment.notes}</p>` : ''}
+                        ${appointment.diagnosis ? `<p><strong>Diagnosis:</strong> ${appointment.diagnosis}</p>` : ''}
+                        ${appointment.treatmentPlan ? `<p><strong>Treatment Plan:</strong> ${appointment.treatmentPlan}</p>` : ''}
+                    </div>
+                    <div class="appointment-actions">
+                        ${status === 'SCHEDULED' ?
+                            `<button onclick="app.cancelAppointment('${appointment.id}')" class="btn btn-danger btn-sm">Cancel</button>` :
+                            ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="appointment-item">
+                <h4>${doctorName}</h4>
+                <p><i class="fas fa-calendar"></i> ${date.toLocaleDateString()}</p>
+                <p><i class="fas fa-clock"></i> ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                <p><i class="fas fa-stethoscope"></i> ${specialization}</p>
+                <p><i class="fas fa-info-circle"></i> ${appointment.reason || 'Consultation'}</p>
+                <span class="status-badge status-${status.toLowerCase()}">${this.getStatusDisplay(status)}</span>
+            </div>
+        `;
+    }
+
+    createDoctorAppointmentCard(appointment) {
+        const date = new Date(appointment.appointmentDate);
+        const patientName = appointment.patient ? 
+            `${appointment.patient.firstName} ${appointment.patient.lastName}` :
+            appointment.patientName || 'Unknown Patient';
+
+        const patientEmail = appointment.patient?.email || appointment.patientEmail || 'Not available';
+        const patientPhone = appointment.patient?.phone || appointment.patientPhone || 'Not available';
+        const status = appointment.status || 'SCHEDULED';
+
+        return `
+            <div class="appointment-card">
+                <div class="appointment-info">
+                    <h4>Patient: ${patientName}</h4>
+                    <div class="patient-details">
+                        <p><strong>Email:</strong> ${patientEmail}</p>
+                        <p><strong>Phone:</strong> ${patientPhone}</p>
+                    </div>
+                    <p><strong>Date & Time:</strong> ${date.toLocaleString()}</p>
+                    <p><strong>Type:</strong> ${appointment.appointmentType || 'IN_PERSON'}</p>
+                    <p><strong>Reason:</strong> ${appointment.reason || 'Not specified'}</p>
+                    <p><strong>Status:</strong> <span class="status ${status.toLowerCase()}">${this.getStatusDisplay(status)}</span></p>
+                </div>
+                <div class="appointment-actions">
+                    ${status === 'SCHEDULED' ? 
+                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CONFIRMED')" class="btn btn-success btn-sm">Confirm</button>` : 
+                        ''}
+                    ${status === 'CONFIRMED' ? 
+                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'COMPLETED')" class="btn btn-primary btn-sm">Complete</button>` : 
+                        ''}
+                    ${(status === 'SCHEDULED' || status === 'CONFIRMED') ? 
+                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CANCELLED')" class="btn btn-danger btn-sm">Cancel</button>` : 
+                        ''}
+                </div>
+            </div>
+        `;
+    }
+
+    createPrescriptionCard(prescription, isPharmacy = false) {
+        const date = new Date(prescription.createdAt || prescription.date || Date.now());
+        const doctorName = prescription.doctor ? 
+            `Dr. ${prescription.doctor.firstName} ${prescription.doctor.lastName}` :
+            prescription.doctorName ? 
+                `Dr. ${prescription.doctorName}` : 
+                'Unknown Doctor';
+        
+        const patientName = isPharmacy && prescription.patient ? 
+            `${prescription.patient.firstName} ${prescription.patient.lastName}` :
+            isPharmacy && prescription.patientName ? 
+                prescription.patientName : '';
+        
+        const medicationCount = prescription.medications ? 
+            prescription.medications.length : 
+            prescription.medicationCount || 0;
+        
+        const status = prescription.status || 'ACTIVE';
+
+        return `
+            <div class="prescription-item">
+                <h4>Prescription #${prescription.id ? prescription.id.substring(0, 8) : 'N/A'}</h4>
+                ${isPharmacy && patientName ? `<p><i class="fas fa-user"></i> ${patientName}</p>` : ''}
+                <p><i class="fas fa-user-md"></i> ${doctorName}</p>
+                <p><i class="fas fa-calendar"></i> ${date.toLocaleDateString()}</p>
+                <p><i class="fas fa-pills"></i> ${medicationCount} medications</p>
+                <span class="status-badge status-${status.toLowerCase()}">${status}</span>
+            </div>
+        `;
+    }
+
+    createInventoryCard(item) {
+        return `
+            <div class="inventory-item">
+                <h4>${item.medicineName || item.name || 'Unknown Medicine'}</h4>
+                <p><i class="fas fa-boxes"></i> Stock: ${item.currentStock || item.quantity || 0}</p>
+                <p><i class="fas fa-exclamation-triangle"></i> Min Level: ${item.minStockLevel || item.minQuantity || 0}</p>
+                <p><i class="fas fa-dollar-sign"></i> Price: $${item.price || 0}</p>
+                ${item.expiryDate ? `<p><i class="fas fa-calendar-times"></i> Expires: ${new Date(item.expiryDate).toLocaleDateString()}</p>` : ''}
+            </div>
+        `;
+    }
+
+    createEmptyState(message, icon) {
+        return `
+            <div class="empty-state">
+                <i class="${icon}"></i>
+                <h3>No Data Available</h3>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+
+    // Enhanced Rendering Methods for Additional Data
+    renderPatientAppointments(appointments) {
+        const container = document.getElementById('patient-appointments');
+        if (!container) return;
+
+        if (!appointments || appointments.length === 0) {
+            container.innerHTML = this.createEmptyState('No appointments found', 'fas fa-calendar-times');
+            return;
+        }
+
+        container.innerHTML = appointments.map(appointment => 
+            this.createPatientAppointmentCard(appointment, true)
+        ).join('');
+    }
+
+    renderPatientUpcomingAppointments(appointments) {
+        const container = document.getElementById('patient-upcoming-appointments');
+        if (!container) return;
+
+        // Filter upcoming appointments (scheduled or confirmed, and in the future)
+        const now = new Date();
+        const upcoming = appointments.filter(apt => {
+            const aptDate = new Date(apt.appointmentDate);
+            const isFuture = aptDate > now;
+            const isActive = apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED';
+            return isFuture && isActive;
+        });
+
+        if (upcoming.length === 0) {
+            container.innerHTML = this.createEmptyState('No upcoming appointments', 'fas fa-calendar-times');
+            return;
+        }
+
+        container.innerHTML = upcoming.map(appointment => 
+            this.createPatientAppointmentCard(appointment, false)
+        ).join('');
+    }
+
+    renderPatientPrescriptions(prescriptions) {
+        const container = document.getElementById('patient-prescriptions');
+        if (!container) return;
+
+        // Filter active prescriptions
+        const activePrescriptions = prescriptions.filter(presc => 
+            presc.status === 'ACTIVE' || presc.status === 'PENDING'
+        );
+
+        if (activePrescriptions.length === 0) {
+            container.innerHTML = this.createEmptyState('No active prescriptions', 'fas fa-prescription-bottle');
+            return;
+        }
+
+        container.innerHTML = activePrescriptions.map(prescription => 
+            this.createPrescriptionCard(prescription)
+        ).join('');
+    }
+
+    renderDoctorTodayAppointments(appointments) {
+        const container = document.getElementById('doctor-appointments');
+        if (!container) return;
+
+        if (!appointments || appointments.length === 0) {
+            container.innerHTML = this.createEmptyState('No appointments today', 'fas fa-calendar-check');
+            return;
+        }
+
+        container.innerHTML = appointments.map(appointment => 
+            this.createDoctorAppointmentCard(appointment)
+        ).join('');
+    }
+
+    renderDoctorAllAppointments(appointments) {
+        const container = document.getElementById('doctor-all-appointments');
+        if (!container) return;
+
+        if (!appointments || appointments.length === 0) {
+            container.innerHTML = this.createEmptyState('No appointments found', 'fas fa-calendar-times');
+            return;
+        }
+
+        container.innerHTML = appointments.map(appointment => 
+            this.createDoctorAppointmentCard(appointment)
+        ).join('');
     }
 
     // UI Methods
@@ -263,130 +623,6 @@ class MediConnectApp {
         }
     }
 
-    populatePatientDashboard(data) {
-        document.getElementById('patient-name').textContent = this.currentUser.firstName;
-        document.getElementById('patient-appointments-count').textContent = data.upcomingAppointments.length;
-        document.getElementById('patient-prescriptions-count').textContent = data.activePrescriptions.length;
-
-        // Populate appointments
-        const appointmentsList = document.getElementById('patient-appointments');
-        if (data.upcomingAppointments.length === 0) {
-            appointmentsList.innerHTML = this.createEmptyState('No upcoming appointments', 'fas fa-calendar-times');
-        } else {
-            appointmentsList.innerHTML = data.upcomingAppointments.map(appointment => 
-                this.createAppointmentCard(appointment)
-            ).join('');
-        }
-
-        // Populate prescriptions
-        const prescriptionsList = document.getElementById('patient-prescriptions');
-        if (data.activePrescriptions.length === 0) {
-            prescriptionsList.innerHTML = this.createEmptyState('No active prescriptions', 'fas fa-prescription-bottle');
-        } else {
-            prescriptionsList.innerHTML = data.activePrescriptions.map(prescription => 
-                this.createPrescriptionCard(prescription)
-            ).join('');
-        }
-    }
-
-    populateDoctorDashboard(data) {
-        document.getElementById('doctor-name').textContent = this.currentUser.firstName + ' ' + this.currentUser.lastName;
-        document.getElementById('doctor-today-appointments').textContent = data.todayAppointments.length;
-        document.getElementById('doctor-patients-count').textContent = data.totalPatients;
-
-        // Populate today's appointments
-        const appointmentsList = document.getElementById('doctor-appointments');
-        if (data.todayAppointments.length === 0) {
-            appointmentsList.innerHTML = this.createEmptyState('No appointments today', 'fas fa-calendar-check');
-        } else {
-            appointmentsList.innerHTML = data.todayAppointments.map(appointment => 
-                this.createAppointmentCard(appointment, true)
-            ).join('');
-        }
-    }
-
-    populatePharmacyDashboard(data) {
-        document.getElementById('pharmacy-name').textContent = data.pharmacy.pharmacyName;
-        document.getElementById('pharmacy-pending-prescriptions').textContent = data.pendingPrescriptions.length;
-        document.getElementById('pharmacy-inventory-count').textContent = data.totalInventoryItems;
-
-        // Populate pending prescriptions
-        const prescriptionsList = document.getElementById('pharmacy-prescriptions');
-        if (data.pendingPrescriptions.length === 0) {
-            prescriptionsList.innerHTML = this.createEmptyState('No pending prescriptions', 'fas fa-prescription');
-        } else {
-            prescriptionsList.innerHTML = data.pendingPrescriptions.map(prescription => 
-                this.createPrescriptionCard(prescription, true)
-            ).join('');
-        }
-
-        // Populate low stock items
-        const lowStockList = document.getElementById('pharmacy-low-stock');
-        if (data.lowStockItems.length === 0) {
-            lowStockList.innerHTML = this.createEmptyState('No low stock items', 'fas fa-boxes');
-        } else {
-            lowStockList.innerHTML = data.lowStockItems.map(item => 
-                this.createInventoryCard(item)
-            ).join('');
-        }
-    }
-
-    createAppointmentCard(appointment, isDoctor = false) {
-        const date = new Date(appointment.appointmentDate);
-        const displayName = isDoctor ? appointment.patientName : appointment.doctorName;
-        
-        return `
-            <div class="appointment-item">
-                <h4>${displayName}</h4>
-                <p><i class="fas fa-calendar"></i> ${date.toLocaleDateString()}</p>
-                <p><i class="fas fa-clock"></i> ${date.toLocaleTimeString()}</p>
-                <p><i class="fas fa-stethoscope"></i> ${appointment.doctorSpecialization || 'General'}</p>
-                <p><i class="fas fa-info-circle"></i> ${appointment.reason || 'No reason specified'}</p>
-                <span class="status-badge status-${appointment.status.toLowerCase()}">${appointment.status}</span>
-            </div>
-        `;
-    }
-
-    createPrescriptionCard(prescription, isPharmacy = false) {
-        const date = new Date(prescription.createdAt);
-        const doctorName = `Dr. ${prescription.doctor.user.firstName} ${prescription.doctor.user.lastName}`;
-        const patientName = isPharmacy ? 
-            `${prescription.patient.user.firstName} ${prescription.patient.user.lastName}` : '';
-        
-        return `
-            <div class="prescription-item">
-                <h4>Prescription #${prescription.id.substring(0, 8)}</h4>
-                ${isPharmacy ? `<p><i class="fas fa-user"></i> ${patientName}</p>` : ''}
-                <p><i class="fas fa-user-md"></i> ${doctorName}</p>
-                <p><i class="fas fa-calendar"></i> ${date.toLocaleDateString()}</p>
-                <p><i class="fas fa-pills"></i> ${prescription.medications?.length || 0} medications</p>
-                <span class="status-badge status-${prescription.status.toLowerCase()}">${prescription.status}</span>
-            </div>
-        `;
-    }
-
-    createInventoryCard(item) {
-        return `
-            <div class="inventory-item">
-                <h4>${item.medicineName}</h4>
-                <p><i class="fas fa-boxes"></i> Stock: ${item.currentStock}</p>
-                <p><i class="fas fa-exclamation-triangle"></i> Min Level: ${item.minStockLevel}</p>
-                <p><i class="fas fa-dollar-sign"></i> Price: $${item.price}</p>
-                ${item.expiryDate ? `<p><i class="fas fa-calendar-times"></i> Expires: ${new Date(item.expiryDate).toLocaleDateString()}</p>` : ''}
-            </div>
-        `;
-    }
-
-    createEmptyState(message, icon) {
-        return `
-            <div class="empty-state">
-                <i class="${icon}"></i>
-                <h3>No Data Available</h3>
-                <p>${message}</p>
-            </div>
-        `;
-    }
-
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
@@ -399,6 +635,19 @@ class MediConnectApp {
         setTimeout(() => {
             toast.remove();
         }, 5000);
+    }
+
+    getStatusDisplay(status) {
+        const statusMap = {
+            'SCHEDULED': 'Scheduled',
+            'CONFIRMED': 'Confirmed',
+            'COMPLETED': 'Completed',
+            'CANCELLED': 'Cancelled',
+            'ACTIVE': 'Active',
+            'PENDING': 'Pending',
+            'FULFILLED': 'Fulfilled'
+        };
+        return statusMap[status] || status;
     }
 
     setupEventListeners() {
@@ -463,46 +712,9 @@ class MediConnectApp {
                 await this.bookAppointment(appointmentData);
             });
         }
-
     }
 
-    renderDoctorAllAppointments(appointments) {
-        const container = document.getElementById('doctor-all-appointments');
-        if (!container) return;
-
-        if (!appointments || appointments.length === 0) {
-            container.innerHTML = '<p class="no-appointments">No appointments found.</p>';
-            return;
-        }
-
-        container.innerHTML = appointments.map(appointment => `
-            <div class="appointment-card">
-                <div class="appointment-info">
-                    <h4>Patient: ${appointment.patientName}</h4>
-                    <div class="patient-details">
-                        <p><strong>Patient Email:</strong> ${appointment.patientEmail || 'Not available'}</p>
-                        <p><strong>Patient Phone:</strong> ${appointment.patientPhone || 'Not available'}</p>
-                    </div>
-                    <p><strong>Date & Time:</strong> ${new Date(appointment.appointmentDate).toLocaleString()}</p>
-                    <p><strong>Type:</strong> ${appointment.appointmentType}</p>
-                    <p><strong>Reason:</strong> ${appointment.reason || 'Not specified'}</p>
-                    <p><strong>Status:</strong> <span class="status ${appointment.status.toLowerCase()}">${this.getStatusDisplay(appointment.status)}</span></p>
-                </div>
-                <div class="appointment-actions">
-                    ${appointment.status === 'SCHEDULED' ? 
-                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CONFIRMED')" class="btn btn-success btn-sm">Approve</button>` : 
-                        ''}
-                    ${appointment.status === 'CONFIRMED' ? 
-                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'COMPLETED')" class="btn btn-primary btn-sm">Complete</button>` : 
-                        ''}
-                    ${(appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED') ? 
-                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CANCELLED')" class="btn btn-danger btn-sm">Cancel</button>` : 
-                        ''}
-                </div>
-            </div>
-        `).join('');
-    }
-
+    // Appointment Methods
     async updateAppointmentStatus(appointmentId, status) {
         try {
             const response = await fetch(`/api/appointments/${appointmentId}/status`, {
@@ -517,7 +729,7 @@ class MediConnectApp {
             const data = await response.json();
 
             if (response.ok) {
-                const statusMessage = status === 'CONFIRMED' ? 'approved' : status.toLowerCase();
+                const statusMessage = status === 'CONFIRMED' ? 'confirmed' : status.toLowerCase();
                 this.showToast(`Appointment ${statusMessage} successfully!`, 'success');
                 // Reload the current dashboard to reflect changes
                 if (this.currentUser.role === 'DOCTOR') {
@@ -535,12 +747,30 @@ class MediConnectApp {
     }
 
     async cancelAppointment(appointmentId) {
-        if (confirm('Are you sure you want to cancel this appointment?')) {
-            await this.updateAppointmentStatus(appointmentId, 'CANCELLED');
+        if (!confirm('Are you sure you want to cancel this appointment?')) return;
+        try {
+            const response = await fetch(`/api/appointments/${appointmentId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok) {
+                this.showToast('Appointment cancelled successfully!', 'success');
+                // Reload current dashboard to reflect changes
+                if (this.currentUser?.role === 'DOCTOR') {
+                    await this.loadDoctorDashboard();
+                } else if (this.currentUser?.role === 'PATIENT') {
+                    await this.loadPatientDashboard();
+                }
+            } else {
+                this.showToast(data.message || 'Failed to cancel appointment', 'error');
+            }
+        } catch (error) {
+            console.error('Cancel appointment error:', error);
+            this.showToast('Failed to cancel appointment. Please try again.', 'error');
         }
     }
 
-    // Appointment Methods
     async bookAppointment(appointmentData) {
         try {
             const response = await fetch('/api/appointments/book', {
@@ -583,7 +813,7 @@ class MediConnectApp {
                 doctors.forEach(doctor => {
                     const option = document.createElement('option');
                     option.value = doctor.id;
-                    option.textContent = `${doctor.name} - ${doctor.specialization}`;
+                    option.textContent = `${doctor.firstName} ${doctor.lastName} - ${doctor.specialization || 'General'}`;
                     doctorSelect.appendChild(option);
                 });
             } else {
@@ -592,81 +822,6 @@ class MediConnectApp {
         } catch (error) {
             console.error('Error loading doctors:', error);
             this.showToast('Failed to load doctors', 'error');
-        }
-    }
-
-    renderPatientAppointments(appointments) {
-        const container = document.getElementById('patient-appointments');
-        if (!container) return;
-
-        if (!appointments || appointments.length === 0) {
-            container.innerHTML = '<p class="no-appointments">No appointments scheduled.</p>';
-            return;
-        }
-
-        container.innerHTML = appointments.map(appointment => `
-            <div class="appointment-card">
-                <div class="appointment-info">
-                    <h4>Dr. ${appointment.doctorName}</h4>
-                    <p><strong>Specialization:</strong> ${appointment.doctorSpecialization}</p>
-                    <p><strong>Date & Time:</strong> ${new Date(appointment.appointmentDate).toLocaleString()}</p>
-                    <p><strong>Type:</strong> ${appointment.appointmentType}</p>
-                    <p><strong>Reason:</strong> ${appointment.reason || 'Not specified'}</p>
-                    <p><strong>Status:</strong> <span class="status ${appointment.status.toLowerCase()}">${this.getStatusDisplay(appointment.status)}</span></p>
-                    ${appointment.notes ? `<p><strong>Notes:</strong> ${appointment.notes}</p>` : ''}
-                    ${appointment.diagnosis ? `<p><strong>Diagnosis:</strong> ${appointment.diagnosis}</p>` : ''}
-                    ${appointment.treatmentPlan ? `<p><strong>Treatment Plan:</strong> ${appointment.treatmentPlan}</p>` : ''}
-                </div>
-                <div class="appointment-actions">
-                    ${appointment.status === 'SCHEDULED' ? 
-                        `<button onclick="app.cancelAppointment('${appointment.id}')" class="btn btn-danger btn-sm">Cancel</button>` : 
-                        ''}
-                </div>
-            </div>
-        `).join('');
-    }
-
-    renderPatientUpcomingAppointments(appointments) {
-        const container = document.getElementById('patient-upcoming-appointments');
-        if (!container) return;
-
-        if (!appointments || appointments.length === 0) {
-            container.innerHTML = '<p class="no-appointments">No upcoming appointments.</p>';
-            return;
-        }
-
-        container.innerHTML = appointments.map(appointment => `
-            <div class="appointment-card">
-                <div class="appointment-info">
-                    <h4>Dr. ${appointment.doctorName}</h4>
-                    <p><strong>Specialization:</strong> ${appointment.doctorSpecialization}</p>
-                    <p><strong>Date & Time:</strong> ${new Date(appointment.appointmentDate).toLocaleString()}</p>
-                    <p><strong>Type:</strong> ${appointment.appointmentType}</p>
-                    <p><strong>Reason:</strong> ${appointment.reason || 'Not specified'}</p>
-                    <p><strong>Status:</strong> <span class="status ${appointment.status.toLowerCase()}">${this.getStatusDisplay(appointment.status)}</span></p>
-                </div>
-                <div class="appointment-actions">
-                    ${appointment.status === 'SCHEDULED' ? 
-                        `<button onclick="app.cancelAppointment('${appointment.id}')" class="btn btn-danger btn-sm">Cancel</button>` : 
-                        ''}
-                </div>
-            </div>
-        `).join('');
-    }
-
-    getStatusDisplay(status) {
-        const statusMap = {
-            'SCHEDULED': 'Scheduled',
-            'CONFIRMED': 'Confirmed by Doctor',
-            'COMPLETED': 'Completed',
-            'CANCELLED': 'Cancelled'
-        };
-        return statusMap[status] || status;
-    }
-
-    async cancelAppointment(appointmentId) {
-        if (confirm('Are you sure you want to cancel this appointment?')) {
-            await this.updateAppointmentStatus(appointmentId, 'CANCELLED');
         }
     }
 }

@@ -55,10 +55,19 @@ public class DoctorController {
         dashboard.put("upcomingAppointments", upcomingAppointments);
         dashboard.put("totalPatients", patients.size());
         dashboard.put("totalAppointments", appointmentService.findByDoctorId(doctor.getId()).size());
+
+        // Add stats object that frontend expects
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("todayPatients", todayAppointments.size());
+        stats.put("pendingReviews", 0); // TODO: Implement pending reviews count
+        stats.put("totalPrescriptions", prescriptionService.countByDoctorId(doctor.getId()));
+        stats.put("aiInsights", 0); // TODO: Implement AI insights count
+
+        dashboard.put("stats", stats);
         
         return ResponseEntity.ok(dashboard);
     }
-    
+
     @GetMapping("/patients")
     public ResponseEntity<?> getPatients(HttpSession session) {
         Optional<User> userOpt = authService.getCurrentUser(session);

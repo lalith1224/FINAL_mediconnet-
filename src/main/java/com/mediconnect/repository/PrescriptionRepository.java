@@ -16,6 +16,9 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, UUID
     
     List<Prescription> findByDoctorId(UUID doctorId);
     
+    @Query("SELECT COUNT(p) FROM Prescription p WHERE p.doctor.id = :doctorId")
+    long countByDoctorId(@Param("doctorId") UUID doctorId);
+    
     List<Prescription> findByPharmacyId(UUID pharmacyId);
     
     List<Prescription> findByStatus(Prescription.PrescriptionStatus status);
