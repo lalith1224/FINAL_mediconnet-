@@ -156,13 +156,17 @@ class MediConnectApp {
             }
 
             // Load prescriptions
-            const prescriptionsResp = await fetch('/api/prescriptions/my-prescriptions', {
+            const prescriptionsResp = await fetch('/api/patient/prescriptions/my-prescriptions', {
                 credentials: 'include'
             });
             
             if (prescriptionsResp.ok) {
                 const prescriptions = await prescriptionsResp.json();
                 this.renderPatientPrescriptions(prescriptions);
+            } else {
+                const error = await prescriptionsResp.json().catch(() => ({}));
+                console.error('Failed to load prescriptions:', error);
+                this.showToast('Failed to load prescriptions', 'error');
             }
         } catch (error) {
             console.error('Error loading patient additional data:', error);

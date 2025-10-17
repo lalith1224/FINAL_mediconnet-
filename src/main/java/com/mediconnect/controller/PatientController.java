@@ -28,6 +28,22 @@ public class PatientController {
     @Autowired
     private PrescriptionService prescriptionService;
     
+    @GetMapping("/prescriptions/my-prescriptions")
+    public ResponseEntity<?> getMyPrescriptions(HttpSession session) {
+        Optional<User> userOpt = authService.getCurrentUser(session);
+        if (userOpt.isEmpty() || userOpt.get().getRole() != User.Role.PATIENT) {
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        }
+
+        Optional<Patient> patientOpt = patientService.findByUserId(userOpt.get().getId());
+        if (patientOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Patient profile not found"));
+        }
+
+        List<Prescription> prescriptions = prescriptionService.findByPatientId(patientOpt.get().getId());
+        return ResponseEntity.ok(prescriptions);
+    }
+
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(HttpSession session) {
         Optional<User> userOpt = authService.getCurrentUser(session);

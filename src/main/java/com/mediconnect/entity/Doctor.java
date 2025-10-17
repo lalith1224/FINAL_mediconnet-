@@ -1,5 +1,6 @@
 package com.mediconnect.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -53,7 +54,8 @@ public class Doctor {
     @Column(name = "daily_appointment_limit")
     private Integer dailyAppointmentLimit = 10;
     
-    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "doctor")
+    @JsonIgnore
     private List<Appointment> appointments;
     
     @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

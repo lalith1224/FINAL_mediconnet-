@@ -1,218 +1,250 @@
 # MediConnect - Healthcare Management System
 
-A comprehensive healthcare management system built with Java Spring Boot backend and HTML/CSS/JavaScript frontend.
+A modern healthcare management system with Spring Boot backend and responsive frontend.
 
-## Features
+## 🚀 Key Features
 
-### For Patients
-- User registration and authentication
-- Dashboard with appointments and prescriptions overview
-- Book and manage appointments
-- View and request prescription refills
-- Access medical records
+### Patient Portal
+- Secure user authentication and profile management
+- Interactive dashboard with appointments and prescriptions
+- Online appointment scheduling system
+- Prescription refill requests
+- Medical records access
 
-### For Doctors
+### Doctor Workspace
 - Professional registration with license verification
-- Dashboard with today's appointments and patient overview
-- Manage patient appointments
-- Create and manage prescriptions
-- Set daily appointment limits
+- Daily appointment management
+- Patient medical history access
+- Digital prescription management
+- Customizable appointment slots
 
-### For Pharmacies
-- Pharmacy registration with license details
-- Dashboard with pending prescriptions and inventory
-- Manage medication inventory
-- Process prescription requests
-- Track low stock items
+## 🛠 Technical Stack
+- **Backend**: Java 17, Spring Boot 3.2.0, Spring Security, JPA/Hibernate
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Fetch API
+- **Database**: MySQL 8.0+ / H2 (development)
+- **Build Tool**: Maven 3.8+
+- **Security**: Session-based authentication, BCrypt password hashing
 
-## Technology Stack
-
-### Backend
-- **Java 21** - Latest LTS version
-- **Spring Boot 3.2.0** - Application framework
-- **Spring Data JPA** - Data persistence
-- **Spring Security** - Authentication and authorization
-- **H2 Database** - In-memory database for development
-- **PostgreSQL** - Production database support
-- **Maven** - Dependency management
-
-### Frontend
-- **HTML5** - Semantic markup
-- **CSS3** - Modern styling with Flexbox/Grid
-- **Vanilla JavaScript** - No framework dependencies
-- **Font Awesome** - Icons
-- **Responsive Design** - Mobile-friendly interface
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- Java 21 or higher
-- Maven 3.6 or higher
+- Java 17 JDK
+- Maven 3.8+
+- MySQL 8.0+ (or use H2 for development)
+- 2GB+ free RAM (1GB minimum with optimizations)
 
-### Installation
+### Running Locally
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd mediconnect-springboot
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/mediconnect-springboot.git
+   cd mediconnect-springboot
+   ```
+
+2. **Configure Database**
+   - For MySQL, update `application.properties`:
+     ```properties
+     spring.datasource.url=jdbc:mysql://localhost:3306/mediconnect
+     spring.datasource.username=your_username
+     spring.datasource.password=your_password
+     ```
+   - Or use H2 in-memory DB for development (no setup needed)
+
+3. **Run with Memory Optimization**
+   ```bash
+   # For development (low memory usage)
+   mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Xmx256m -Xms128m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC"
+
+   # For production
+   mvn clean package
+   java -Xmx256m -Xms128m -jar target/mediconnect-springboot-1.0.0.jar
+   ```
+
+4. **Access the Application**
+   - Frontend: http://localhost:8080
+   - H2 Console (if enabled): http://localhost:8080/h2-console
+
+## 🔧 Configuration
+
+### Memory Optimization (Optional)
+Add to `application.properties` for better performance on low-memory systems:
+```properties
+# Reduce memory footprint
+spring.main.lazy-initialization=true
+spring.datasource.hikari.maximum-pool-size=2
+spring.jpa.open-in-view=false
 ```
 
-2. Build the application:
-```bash
-mvn clean install
+## 📂 Project Structure
+
+```
+mediconnect-springboot/
+├── src/
+│   ├── main/
+│   │   ├── java/com/mediconnect/
+│   │   │   ├── config/        # Spring configuration
+│   │   │   ├── controller/    # REST endpoints
+│   │   │   ├── dto/           # Data Transfer Objects
+│   │   │   ├── entity/        # JPA entities
+│   │   │   ├── repository/    # Data access
+│   │   │   ├── service/       # Business logic
+│   │   │   └── MediConnectApplication.java
+│   │   └── resources/
+│   │       ├── static/        # Frontend assets
+│   │       │   ├── css/       # Stylesheets
+│   │       │   ├── js/        # JavaScript files
+│   │       │   └── images/    # Image assets
+│   │       ├── application.properties
+│   │       └── schema.sql     # Database schema
+│   └── test/                  # Test files
+└── pom.xml                    # Maven configuration
 ```
 
-3. Run the application:
-```bash
-mvn spring-boot:run
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### 1. Memory Errors
+```
+Java HotSpot(TM) 64-Bit Server VM warning: INFO: os::commit_memory failed
+```
+**Solution:**
+- Use the provided JVM memory arguments
+- Close other memory-intensive applications
+- Increase system page file size
+- Use H2 database instead of MySQL for development
+
+#### 2. Chunked Encoding Error
+**Symptoms:** Incomplete responses or browser console errors
+**Solution:**
+- Clear browser cache (Ctrl+F5)
+- Verify backend is returning proper DTOs (not JPA entities)
+- Check server logs for serialization errors
+
+#### 3. Database Connection Issues
+**Solution:**
+- Verify database service is running
+- Check credentials in `application.properties`
+- Ensure database exists and user has permissions
+- Run `schema.sql` to initialize tables if needed
+
+## 📝 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📬 Contact
+For support or contributions, please open an issue or submit a pull request.
+
+---
+Built with ❤️ for better healthcare management
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Java 17 JDK
+- Maven 3.8+
+- MySQL 8.0+ (or use H2 for development)
+- 2GB+ free RAM (1GB minimum with optimizations)
+
+### Running Locally
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/mediconnect-springboot.git
+   cd mediconnect-springboot
+   ```
+
+2. **Configure Database**
+   - For MySQL, update `application.properties`:
+     ```properties
+     spring.datasource.url=jdbc:mysql://localhost:3306/mediconnect
+     spring.datasource.username=your_username
+     spring.datasource.password=your_password
+     ```
+   - Or use H2 in-memory DB for development (no setup needed)
+
+3. **Run with Memory Optimization**
+   ```bash
+   # For development (low memory usage)
+   mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Xmx256m -Xms128m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC"
+
+   # For production
+   mvn clean package
+   java -Xmx256m -Xms128m -jar target/mediconnect-springboot-1.0.0.jar
+   ```
+
+4. **Access the Application**
+   - Frontend: http://localhost:8080
+   - H2 Console (if enabled): http://localhost:8080/h2-console
+
+## 🔧 Configuration
+
+### Memory Optimization (Optional)
+Add to `application.properties` for better performance on low-memory systems:
+```properties
+# Reduce memory footprint
+spring.main.lazy-initialization=true
+spring.datasource.hikari.maximum-pool-size=2
+spring.jpa.open-in-view=false
 ```
 
-4. Access the application:
-- Main application: http://localhost:8080
-- H2 Database console: http://localhost:8080/h2-console
-  - JDBC URL: `jdbc:h2:mem:mediconnect`
-  - Username: `sa`
-  - Password: `password`
+## 📂 Project Structure
 
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/user` - Get current user
-
-### Patient Endpoints
-- `GET /api/patient/dashboard` - Patient dashboard data
-- `GET /api/patient/appointments` - Patient appointments
-- `POST /api/patient/appointments` - Book appointment
-- `GET /api/patient/prescriptions` - Patient prescriptions
-- `GET /api/patient/medical-records` - Medical records
-- `POST /api/patient/prescriptions/{id}/refill` - Request refill
-
-### Doctor Endpoints
-- `GET /api/doctor/dashboard` - Doctor dashboard data
-- `GET /api/doctor/patients` - Doctor's patients
-- `POST /api/doctor/prescriptions` - Create prescription
-- `PUT /api/doctor/appointment-limit` - Update appointment limit
-- `GET /api/doctor/{doctorId}/availability` - Check availability
-
-### Pharmacy Endpoints
-- `GET /api/pharmacy/dashboard` - Pharmacy dashboard data
-- `POST /api/pharmacy/inventory` - Add inventory item
-- `PUT /api/pharmacy/prescriptions/{id}/status` - Update prescription status
-- `POST /api/pharmacy/prescriptions` - Create prescription
-
-### General Endpoints
-- `GET /api/doctors` - List all doctors
-- `PUT /api/appointments/{id}` - Update appointment
-- `POST /api/ai/chat` - AI assistant chat
-
-## Database Schema
-
-The application uses the following main entities:
-
-- **Users** - Base user authentication and profile
-- **Patients** - Patient-specific information and medical history
-- **Doctors** - Doctor profiles with specializations and credentials
-- **Pharmacies** - Pharmacy information and operating details
-- **Appointments** - Medical appointments between patients and doctors
-- **Prescriptions** - Medical prescriptions with medications
-- **Medications** - Individual medication details within prescriptions
-- **InventoryItems** - Pharmacy medication inventory
-
-## Configuration
-
-### Database Configuration
-The application is configured to use H2 in-memory database by default. To use PostgreSQL:
-
-1. Update `application.yml`:
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/mediconnect
-    username: your_username
-    password: your_password
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+```
+mediconnect-springboot/
+├── src/
+│   ├── main/
+│   │   ├── java/com/mediconnect/
+│   │   │   ├── config/        # Spring configuration
+│   │   │   ├── controller/    # REST endpoints
+│   │   │   ├── dto/           # Data Transfer Objects
+│   │   │   ├── entity/        # JPA entities
+│   │   │   ├── repository/    # Data access
+│   │   │   ├── service/       # Business logic
+│   │   │   └── MediConnectApplication.java
+│   │   └── resources/
+│   │       ├── static/        # Frontend assets
+│   │       │   ├── css/       # Stylesheets
+│   │       │   ├── js/        # JavaScript files
+│   │       │   └── images/    # Image assets
+│   │       ├── application.properties
+│   │       └── schema.sql     # Database schema
+│   └── test/                  # Test files
+└── pom.xml                    # Maven configuration
 ```
 
-2. Ensure PostgreSQL is running and the database exists.
+## 🐛 Troubleshooting
 
-### Security Configuration
-- CSRF is disabled for API endpoints
-- Session-based authentication
-- BCrypt password encoding
-- Role-based access control
+### Common Issues
 
-## Development
-
-### Project Structure
+#### 1. Memory Errors
 ```
-src/
-├── main/
-│   ├── java/com/mediconnect/
-│   │   ├── config/          # Configuration classes
-│   │   ├── controller/      # REST controllers
-│   │   ├── dto/            # Data transfer objects
-│   │   ├── entity/         # JPA entities
-│   │   ├── repository/     # Data repositories
-│   │   ├── service/        # Business logic services
-│   │   └── MediConnectApplication.java
-│   └── resources/
-│       ├── static/         # Frontend assets
-│       │   ├── css/
-│       │   ├── js/
-│       │   └── index.html
-│       └── application.yml
-└── test/                   # Test classes
+Java HotSpot(TM) 64-Bit Server VM warning: INFO: os::commit_memory failed
 ```
+**Solution:**
+- Use the provided JVM memory arguments
+- Close other memory-intensive applications
+- Increase system page file size
+- Use H2 database instead of MySQL for development
 
-### Adding New Features
+#### 2. Chunked Encoding Error
+**Symptoms:** Incomplete responses or browser console errors
+**Solution:**
+- Clear browser cache (Ctrl+F5)
+- Verify backend is returning proper DTOs (not JPA entities)
+- Check server logs for serialization errors
 
-1. **Backend**: Create entity → repository → service → controller
-2. **Frontend**: Add HTML structure → CSS styling → JavaScript functionality
-3. **Integration**: Connect frontend to backend APIs
+#### 3. Database Connection Issues
+**Solution:**
+- Verify database service is running
+- Check credentials in `application.properties`
+- Ensure database exists and user has permissions
+- Run `schema.sql` to initialize tables if needed
 
-## Testing
+## 📝 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Run tests with:
-```bash
-mvn test
-```
+## 📬 Contact
+For support or contributions, please open an issue or submit a pull request.
 
-## Deployment
-
-### Production Build
-```bash
-mvn clean package -Pproduction
-```
-
-### Docker Deployment
-```dockerfile
-FROM openjdk:21-jdk-slim
-COPY target/mediconnect-springboot-1.0.0.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app.jar"]
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For support and questions, please contact the development team or create an issue in the repository.
+---
+Built with ❤️ for better healthcare management
