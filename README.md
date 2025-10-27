@@ -417,7 +417,7 @@ ENTRYPOINT ["java","-jar","/app.jar"]
 ## 👥 Development Team
 
 ### Lead Developer
-**ALFRED MARIO SRIVIKASH**
+**ALFRED MARIO and  SRIVIKASH**
 - Full-stack developer and project architect
 - Specializes in healthcare technology solutions
 - Expert in Spring Boot, JavaScript, and AI integration
@@ -428,30 +428,6 @@ ENTRYPOINT ["java","-jar","/app.jar"]
 - **AI Integration**: OpenRouter API, natural language processing
 - **Database Design**: Entity modeling, relationship management
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Guidelines
-- Follow Java coding standards
-- Write meaningful commit messages
-- Test thoroughly before submitting
-- Update documentation as needed
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue in the GitHub repository
-- Contact the development team
-- Check the documentation and API endpoints
 
 ## 🔮 Future Enhancements
 
@@ -477,4 +453,3 @@ For support and questions:
 
 **MediConnect** - Revolutionizing healthcare management through innovative technology.
 
-*Built with ❤️ by the MediConnect development team*
