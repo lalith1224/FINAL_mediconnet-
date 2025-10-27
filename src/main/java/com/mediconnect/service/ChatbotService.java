@@ -1,129 +1,161 @@
 package com.mediconnect.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.mediconnect.dto.ChatMessage;
-import com.mediconnect.dto.ChatRequest;
-import com.mediconnect.dto.ChatResponse;
+import com.mediconnect.controller.ChatbotController.ChatMessage;
+import com.mediconnect.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class ChatbotService {
-
-    @Value("${openrouter.api.key:}")
+    
+    @Value("${openrouter.api.key}")
     private String apiKey;
-
-    @Value("${openrouter.api.url:https://openrouter.ai/api/v1/chat/completions}")
+    
+    @Value("${openrouter.api.url}")
     private String apiUrl;
-
-    @Value("${openrouter.model:meta-llama/llama-3.1-8b-instruct:free}")
+    
+    @Value("${openrouter.model}")
     private String model;
-
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
-
-    public ChatbotService() {
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .build();
-        this.objectMapper = new ObjectMapper();
-    }
-
-    public ChatResponse chat(ChatRequest chatRequest) {
+    
+    @Autowired
+    private UserService userService;
+    
+    private final RestTemplate restTemplate = new RestTemplate();
+    
+    // Store chat histories in memory (in production, use Redis or database)
+    private final Map<String, List<ChatMessage>> chatHistories = new HashMap<>();
+    
+    public String generateResponse(List<ChatMessage> messages, String userId, String userRole) {
         try {
-            if (apiKey == null || apiKey.isEmpty()) {
-                return ChatResponse.error("OpenRouter API key is not configured. Please add it to application.properties");
-            }
-
-            // Build the request payload
-            ObjectNode payload = objectMapper.createObjectNode();
-            payload.put("model", model);
-
-            // Add system message based on user role
-            ArrayNode messages = objectMapper.createArrayNode();
+            // Get user context
+            String userContext = getUserContext(userId, userRole);
             
-            String systemPrompt = getSystemPrompt(chatRequest.getUserRole());
-            ObjectNode systemMessage = objectMapper.createObjectNode();
+            // Prepare messages for AI
+            List<Map<String, String>> aiMessages = new ArrayList<>();
+            
+            // Add system message with context
+            Map<String, String> systemMessage = new HashMap<>();
             systemMessage.put("role", "system");
-            systemMessage.put("content", systemPrompt);
-            messages.add(systemMessage);
-
-            // Add conversation messages
-            for (ChatMessage msg : chatRequest.getMessages()) {
-                ObjectNode messageNode = objectMapper.createObjectNode();
-                messageNode.put("role", msg.getRole());
-                messageNode.put("content", msg.getContent());
-                messages.add(messageNode);
+            systemMessage.put("content", getSystemPrompt() + "\n\nUser Context: " + userContext);
+            aiMessages.add(systemMessage);
+            
+            // Add conversation history
+            for (ChatMessage msg : messages) {
+                Map<String, String> aiMessage = new HashMap<>();
+                aiMessage.put("role", msg.getRole());
+                aiMessage.put("content", msg.getContent());
+                aiMessages.add(aiMessage);
             }
-
-            payload.set("messages", messages);
-            payload.put("temperature", 0.7);
-            payload.put("max_tokens", 1000);
-
-            // Create HTTP request
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(apiUrl))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Content-Type", "application/json")
-                    .header("HTTP-Referer", "https://mediconnect.app")
-                    .header("X-Title", "MediConnect")
-                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
-                    .timeout(Duration.ofSeconds(30))
-                    .build();
-
-            // Send request
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                JsonNode responseJson = objectMapper.readTree(response.body());
-                String assistantMessage = responseJson
-                        .path("choices")
-                        .get(0)
-                        .path("message")
-                        .path("content")
-                        .asText();
-
-                return ChatResponse.success(assistantMessage);
-            } else {
-                JsonNode errorJson = objectMapper.readTree(response.body());
-                String errorMessage = errorJson.path("error").path("message").asText("Unknown error occurred");
-                return ChatResponse.error("API Error: " + errorMessage);
+            
+            // Prepare request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", aiMessages);
+            requestBody.put("max_tokens", 500);
+            requestBody.put("temperature", 0.7);
+            
+            // Set headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
+            headers.set("HTTP-Referer", "https://mediconnect.local");
+            headers.set("X-Title", "MediConnect AI Assistant");
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            // Make API call
+            ResponseEntity<Map> response = restTemplate.exchange(
+                apiUrl, 
+                HttpMethod.POST, 
+                entity, 
+                Map.class
+            );
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                
+                if (choices != null && !choices.isEmpty()) {
+                    Map<String, Object> firstChoice = choices.get(0);
+                    Map<String, Object> message = (Map<String, Object>) firstChoice.get("message");
+                    String content = (String) message.get("content");
+                    
+                    // Store in chat history
+                    if (userId != null) {
+                        storeChatHistory(userId, messages);
+                    }
+                    
+                    return content != null ? content.trim() : "I'm sorry, I couldn't generate a response.";
+                }
             }
-
+            
+            return "I'm having trouble connecting to the AI service. Please try again.";
+            
         } catch (Exception e) {
+            System.err.println("Chatbot error: " + e.getMessage());
             e.printStackTrace();
-            return ChatResponse.error("Failed to communicate with AI service: " + e.getMessage());
+            return "I'm experiencing technical difficulties. Please try again later.";
         }
     }
-
-    private String getSystemPrompt(String userRole) {
-        if ("DOCTOR".equalsIgnoreCase(userRole)) {
-            return "You are a helpful AI assistant for doctors in the MediConnect healthcare system. " +
-                    "You can help with medical information, patient management queries, appointment scheduling, " +
-                    "prescription guidelines, and general healthcare administration. " +
-                    "Always provide accurate, professional medical information and remind doctors to verify " +
-                    "critical information independently. Do not provide specific diagnoses or treatment plans " +
-                    "without proper context.";
-        } else if ("PATIENT".equalsIgnoreCase(userRole)) {
-            return "You are a helpful AI assistant for patients in the MediConnect healthcare system. " +
-                    "You can help answer general health questions, explain medical terms, provide information " +
-                    "about appointments and prescriptions, and offer wellness tips. " +
-                    "Always remind patients that you are not a replacement for professional medical advice " +
-                    "and they should consult their doctor for specific medical concerns. " +
-                    "Be empathetic, clear, and supportive in your responses.";
-        } else {
-            return "You are a helpful AI assistant for the MediConnect healthcare system. " +
-                    "Provide helpful, accurate, and professional information.";
+    
+    private String getUserContext(String userId, String userRole) {
+        if (userId == null || userRole == null) {
+            return "Anonymous user";
         }
+        
+        try {
+            Optional<User> userOpt = userService.findById(UUID.fromString(userId));
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                return String.format("User: %s %s, Role: %s", 
+                    user.getFirstName(), user.getLastName(), userRole);
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting user context: " + e.getMessage());
+        }
+        
+        return "User role: " + userRole;
+    }
+    
+    private String getSystemPrompt() {
+        return """
+            You are MediConnect AI Assistant, a helpful healthcare management assistant for the MediConnect platform.
+            
+            Your role is to help users with:
+            - General healthcare information and guidance
+            - Navigating the MediConnect platform features
+            - Appointment scheduling assistance
+            - Prescription management help
+            - General medical questions (but always recommend consulting healthcare professionals)
+            - Platform troubleshooting and support
+            
+            Guidelines:
+            - Be professional, empathetic, and helpful
+            - Always recommend consulting healthcare professionals for medical advice
+            - Provide clear, concise responses
+            - If you don't know something, admit it and suggest alternatives
+            - Focus on being helpful within the healthcare management context
+            - Never provide specific medical diagnoses or treatment recommendations
+            - Keep responses conversational but informative
+            
+            Remember: You are an assistant for a healthcare management platform, not a replacement for medical professionals.
+            """;
+    }
+    
+    private void storeChatHistory(String userId, List<ChatMessage> messages) {
+        chatHistories.put(userId, new ArrayList<>(messages));
+    }
+    
+    public void clearChatHistory(String userId) {
+        chatHistories.remove(userId);
+    }
+    
+    public List<ChatMessage> getChatHistory(String userId) {
+        return chatHistories.getOrDefault(userId, new ArrayList<>());
     }
 }

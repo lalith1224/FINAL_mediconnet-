@@ -49,19 +49,32 @@ public class DoctorController {
         List<Appointment> upcomingAppointments = appointmentService.findUpcomingByDoctorId(doctor.getId());
         List<Patient> patients = patientService.findByDoctorId(doctor.getId());
         
+        // Get all appointments for statistics
+        List<Appointment> allAppointments = appointmentService.findByDoctorId(doctor.getId());
+        long completedAppointments = allAppointments.stream()
+                .filter(a -> "COMPLETED".equals(a.getStatus()))
+                .count();
+        long pendingAppointments = allAppointments.stream()
+                .filter(a -> "PENDING".equals(a.getStatus()) || "CONFIRMED".equals(a.getStatus()))
+                .count();
+        long cancelledAppointments = allAppointments.stream()
+                .filter(a -> "CANCELLED".equals(a.getStatus()))
+                .count();
+
         Map<String, Object> dashboard = new HashMap<>();
         dashboard.put("doctor", doctor);
         dashboard.put("todayAppointments", todayAppointments);
         dashboard.put("upcomingAppointments", upcomingAppointments);
         dashboard.put("totalPatients", patients.size());
-        dashboard.put("totalAppointments", appointmentService.findByDoctorId(doctor.getId()).size());
+        dashboard.put("totalAppointments", allAppointments.size());
 
         // Add stats object that frontend expects
         Map<String, Object> stats = new HashMap<>();
         stats.put("todayPatients", todayAppointments.size());
-        stats.put("pendingReviews", 0); // TODO: Implement pending reviews count
+        stats.put("completedAppointments", completedAppointments);
+        stats.put("pendingAppointments", pendingAppointments);
+        stats.put("cancelledAppointments", cancelledAppointments);
         stats.put("totalPrescriptions", prescriptionService.countByDoctorId(doctor.getId()));
-        stats.put("aiInsights", 0); // TODO: Implement AI insights count
 
         dashboard.put("stats", stats);
         

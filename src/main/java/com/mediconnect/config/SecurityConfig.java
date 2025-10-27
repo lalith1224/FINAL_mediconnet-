@@ -50,6 +50,8 @@ public class SecurityConfig {
                     "/register", 
                     "/api/auth/login", 
                     "/api/auth/register",
+                    "/api/test/**",
+                    "/api/chatbot/test",
                     "/css/**", 
                     "/js/**", 
                     "/images/**",

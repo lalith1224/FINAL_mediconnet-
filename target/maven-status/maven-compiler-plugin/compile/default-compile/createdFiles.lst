@@ -1,6 +1,7 @@
 com\mediconnect\service\PharmacyService.class
 com\mediconnect\repository\UserRepository.class
 com\mediconnect\repository\InventoryItemRepository.class
+com\mediconnect\controller\TestDataController.class
 com\mediconnect\entity\Doctor.class
 com\mediconnect\entity\Pharmacy.class
 com\mediconnect\config\PasswordEncoderConfig.class
@@ -39,9 +40,11 @@ com\mediconnect\controller\AppointmentController.class
 com\mediconnect\service\DoctorService.class
 com\mediconnect\entity\Medication.class
 com\mediconnect\entity\Prescription$PrescriptionStatus.class
+com\mediconnect\controller\ChatbotController$ChatRequest.class
 com\mediconnect\entity\User.class
 com\mediconnect\config\SecurityConfig.class
 com\mediconnect\repository\PharmacyRepository.class
 com\mediconnect\dto\ChatMessage.class
+com\mediconnect\controller\ChatbotController$ChatMessage.class
 com\mediconnect\dto\ChatRequest.class
 com\mediconnect\repository\PrescriptionRepository.class

@@ -1,74 +1,129 @@
 package com.mediconnect.controller;
 
-import com.mediconnect.dto.ChatRequest;
-import com.mediconnect.dto.ChatResponse;
-import com.mediconnect.entity.User;
-import com.mediconnect.service.AuthService;
 import com.mediconnect.service.ChatbotService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/chatbot")
 public class ChatbotController {
-
+    
     @Autowired
     private ChatbotService chatbotService;
-
-    @Autowired
-    private AuthService authService;
-
+    
     @PostMapping("/chat")
-    public ResponseEntity<?> chat(@RequestBody ChatRequest chatRequest, HttpSession session) {
+    public ResponseEntity<?> chat(@RequestBody ChatRequest request, HttpSession session) {
         try {
-            // Verify user is authenticated
-            Optional<User> userOpt = authService.getCurrentUser(session);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
-            }
-
-            User user = userOpt.get();
+            // Check if user is authenticated
+            String userId = (String) session.getAttribute("userId");
+            String userRole = (String) session.getAttribute("userRole");
             
-            // Set the user role in the chat request
-            chatRequest.setUserRole(user.getRole().name());
-
+            if (userId == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "Please log in to use the AI assistant.");
+                return ResponseEntity.status(401).body(error);
+            }
+            
             // Validate request
-            if (chatRequest.getMessages() == null || chatRequest.getMessages().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Messages cannot be empty"));
+            if (request.getMessages() == null || request.getMessages().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "No message provided.");
+                return ResponseEntity.badRequest().body(error);
             }
-
-            // Process chat request
-            ChatResponse response = chatbotService.chat(chatRequest);
-
-            if (response.isSuccess()) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(500).body(response);
-            }
-
+            
+            // Generate AI response
+            String response = chatbotService.generateResponse(request.getMessages(), userId, userRole);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", response);
+            
+            return ResponseEntity.ok(result);
+            
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(
-                    ChatResponse.error("An error occurred: " + e.getMessage())
-            );
+            System.err.println("Chatbot controller error: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "I'm having trouble processing your request right now. Please try again later.");
+            
+            return ResponseEntity.status(500).body(error);
         }
     }
-
-    @GetMapping("/status")
-    public ResponseEntity<?> getStatus(HttpSession session) {
-        Optional<User> userOpt = authService.getCurrentUser(session);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+    
+    @PostMapping("/clear")
+    public ResponseEntity<?> clearChat(HttpSession session) {
+        try {
+            String userId = (String) session.getAttribute("userId");
+            if (userId != null) {
+                chatbotService.clearChatHistory(userId);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "Chat history cleared");
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Failed to clear chat history");
+            
+            return ResponseEntity.badRequest().body(error);
         }
-
-        return ResponseEntity.ok(Map.of(
-                "status", "online",
-                "userRole", userOpt.get().getRole().name(),
-                "message", "Chatbot is ready to assist you"
-        ));
+    }
+    
+    @GetMapping("/test")
+    public ResponseEntity<?> testChatbot() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("message", "Chatbot service is running!");
+        result.put("timestamp", System.currentTimeMillis());
+        
+        return ResponseEntity.ok(result);
+    }
+    
+    // DTO for chat request
+    public static class ChatRequest {
+        private List<ChatMessage> messages;
+        
+        public List<ChatMessage> getMessages() {
+            return messages;
+        }
+        
+        public void setMessages(List<ChatMessage> messages) {
+            this.messages = messages;
+        }
+    }
+    
+    public static class ChatMessage {
+        private String role;
+        private String content;
+        
+        public String getRole() {
+            return role;
+        }
+        
+        public void setRole(String role) {
+            this.role = role;
+        }
+        
+        public String getContent() {
+            return content;
+        }
+        
+        public void setContent(String content) {
+            this.content = content;
+        }
     }
 }

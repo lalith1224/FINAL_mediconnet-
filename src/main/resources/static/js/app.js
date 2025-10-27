@@ -17,7 +17,7 @@ class MediConnectApp {
             const response = await fetch('/api/auth/user', {
                 credentials: 'include'
             });
-            
+
             if (response.ok) {
                 const user = await response.json();
                 this.currentUser = user;
@@ -100,10 +100,16 @@ class MediConnectApp {
                 method: 'POST',
                 credentials: 'include'
             });
-            
+
             this.currentUser = null;
             this.updateNavigation(false);
             this.showPage('landing');
+            
+            // Destroy chatbot when user logs out
+            if (typeof destroyChatbot === 'function') {
+                destroyChatbot();
+            }
+            
             this.showToast('Logged out successfully', 'success');
         } catch (error) {
             console.error('Logout error:', error);
@@ -115,7 +121,7 @@ class MediConnectApp {
     async loadPatientDashboard() {
         try {
             console.log('Loading patient dashboard...');
-            
+
             // Load comprehensive dashboard data
             const response = await fetch('/api/patient/dashboard', {
                 credentials: 'include'
@@ -125,7 +131,7 @@ class MediConnectApp {
                 const data = await response.json();
                 console.log('Patient dashboard data:', data);
                 this.populatePatientDashboard(data);
-                
+
                 // Load additional data for different sections
                 await this.loadPatientAdditionalData();
             } else {
@@ -148,7 +154,7 @@ class MediConnectApp {
             const appointmentsResp = await fetch('/api/appointments/my-appointments', {
                 credentials: 'include'
             });
-            
+
             if (appointmentsResp.ok) {
                 const appointments = await appointmentsResp.json();
                 this.renderPatientAppointments(appointments);
@@ -159,7 +165,7 @@ class MediConnectApp {
             const prescriptionsResp = await fetch('/api/patient/prescriptions/my-prescriptions', {
                 credentials: 'include'
             });
-            
+
             if (prescriptionsResp.ok) {
                 const prescriptions = await prescriptionsResp.json();
                 this.renderPatientPrescriptions(prescriptions);
@@ -176,17 +182,17 @@ class MediConnectApp {
     async loadDoctorDashboard() {
         try {
             console.log('Loading doctor dashboard...');
-            
+
             // Load comprehensive dashboard data
             const response = await fetch('/api/doctor/dashboard', {
                 credentials: 'include'
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 console.log('Doctor dashboard data:', data);
                 this.populateDoctorDashboard(data);
-                
+
                 // Load additional data
                 await this.loadDoctorAdditionalData();
             } else {
@@ -209,7 +215,7 @@ class MediConnectApp {
             const appointmentsResp = await fetch('/api/appointments/doctor/booked', {
                 credentials: 'include'
             });
-            
+
             if (appointmentsResp.ok) {
                 const appointments = await appointmentsResp.json();
                 this.renderDoctorAllAppointments(appointments);
@@ -219,7 +225,7 @@ class MediConnectApp {
             const todayResp = await fetch('/api/appointments/doctor/today', {
                 credentials: 'include'
             });
-            
+
             if (todayResp.ok) {
                 const todayAppointments = await todayResp.json();
                 this.renderDoctorTodayAppointments(todayAppointments);
@@ -253,67 +259,119 @@ class MediConnectApp {
 
     // Enhanced UI Population Methods
     populatePatientDashboard(data) {
-        if (!this.currentUser) return;
+        console.log('Patient dashboard data:', data);
+        if (!data) return;
 
-        // Update user info
-        document.getElementById('patient-name').textContent = this.currentUser.firstName;
+        // Update welcome message
+        const patientNameEl = document.getElementById('patient-name');
+        if (patientNameEl) {
+            let patientName = 'Patient';
+            
+            if (data.patient) {
+                console.log('Patient data:', data.patient);
+                if (data.patient.firstName) {
+                    patientName = data.patient.firstName;
+                } else if (data.patient.user && data.patient.user.firstName) {
+                    patientName = data.patient.user.firstName;
+                }
+            } else if (this.currentUser) {
+                console.log('Using current user:', this.currentUser);
+                patientName = this.currentUser.firstName || 'Patient';
+            }
+            
+            console.log('Setting patient name to:', patientName);
+            patientNameEl.textContent = patientName;
+        }
 
-        // Update statistics - with fallback values
-        const stats = data.stats || {};
-        document.getElementById('patient-appointments-count').textContent = stats.totalAppointments || 0;
-        document.getElementById('patient-upcoming-count').textContent = stats.upcomingAppointments || 0;
-        document.getElementById('patient-completed-count').textContent = stats.completedAppointments || 0;
-        document.getElementById('patient-prescriptions-count').textContent = stats.activePrescriptions || 0;
+        // Update stat cards
+        const stats = data.appointmentStats || {};
+        this.updateStatElement('patient-appointments-count', stats.total || 0);
+        this.updateStatElement('patient-upcoming-count', stats.upcoming || 0);
+        this.updateStatElement('patient-completed-count', stats.completed || 0);
+        this.updateStatElement('patient-prescriptions-count', data.totalPrescriptions || 0);
 
-        // Populate upcoming appointments from dashboard data if available
+        // Update upcoming appointments
         const upcomingContainer = document.getElementById('patient-upcoming-appointments');
-        if (data.upcomingAppointments && data.upcomingAppointments.length > 0) {
-            upcomingContainer.innerHTML = data.upcomingAppointments.map(appointment =>
-                this.createPatientAppointmentCard(appointment, false)
-            ).join('');
-        } else {
-            upcomingContainer.innerHTML = this.createEmptyState('No upcoming appointments', 'fas fa-calendar-times');
+        if (upcomingContainer) {
+            if (data.upcomingAppointments && data.upcomingAppointments.length > 0) {
+                upcomingContainer.innerHTML = data.upcomingAppointments.map(appointment =>
+                    this.createPatientAppointmentCard(appointment)
+                ).join('');
+            } else {
+                upcomingContainer.innerHTML = this.createEmptyState('No upcoming appointments', 'fas fa-calendar-times');
+            }
         }
 
         // Populate prescriptions from dashboard data if available
         const prescriptionsContainer = document.getElementById('patient-prescriptions');
-        if (data.activePrescriptions && data.activePrescriptions.length > 0) {
-            prescriptionsContainer.innerHTML = data.activePrescriptions.map(prescription =>
-                this.createPrescriptionCard(prescription)
-            ).join('');
-        } else {
-            prescriptionsContainer.innerHTML = this.createEmptyState('No active prescriptions', 'fas fa-prescription-bottle');
+        if (prescriptionsContainer) {
+            if (data.activePrescriptions && data.activePrescriptions.length > 0) {
+                prescriptionsContainer.innerHTML = data.activePrescriptions.map(prescription =>
+                    this.createPrescriptionCard(prescription)
+                ).join('');
+            } else {
+                prescriptionsContainer.innerHTML = this.createEmptyState('No active prescriptions', 'fas fa-prescription-bottle');
+            }
         }
     }
 
+    updateStatElement(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    updateStatCard(cardId, value, icon, label, bgClass) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+
+        card.innerHTML = `
+            <div class="stat-card ${bgClass}">
+                <i class="fas fa-${icon}"></i>
+                <div class="stat-info">
+                    <h3>${value}</h3>
+                    <p>${label}</p>
+                </div>
+            </div>
+        `;
+    }
+
     populateDoctorDashboard(data) {
-        if (!this.currentUser) return;
+        if (!data) return;
 
-        // Update user info
-        document.getElementById('doctor-name').textContent = this.currentUser.lastName;
-
-        // Update statistics - with fallback values and proper data structure handling
-        const stats = data.stats || {};
-        document.getElementById('doctor-today-appointments').textContent = stats.todayAppointments || stats.todayPatients || 0;
-        document.getElementById('doctor-patients-count').textContent = stats.totalPatients || stats.patientCount || 0;
-        document.getElementById('doctor-prescriptions-count').textContent = stats.totalPrescriptions || 0;
-        document.getElementById('doctor-pending-reviews').textContent = stats.pendingReviews || 0;
-        document.getElementById('doctor-ai-insights').textContent = stats.aiInsights || 0;
-
-        // Populate today's appointments from dashboard data if available
-        const todayAppointmentsContainer = document.getElementById('doctor-appointments');
-        if (data.todayAppointments && data.todayAppointments.length > 0) {
-            todayAppointmentsContainer.innerHTML = data.todayAppointments.map(appointment =>
-                this.createDoctorAppointmentCard(appointment)
-            ).join('');
-        } else {
-            todayAppointmentsContainer.innerHTML = this.createEmptyState('No appointments today', 'fas fa-calendar-check');
+        // Update welcome message
+        const welcomeEl = document.getElementById('welcome-message');
+        if (welcomeEl && data.doctor) {
+            welcomeEl.textContent = `Welcome back, Dr. ${data.doctor.user?.lastName || 'Doctor'}!`;
         }
 
-        // Populate upcoming appointments if available
-        const upcomingContainer = document.getElementById('doctor-upcoming-appointments');
-        if (upcomingContainer && data.upcomingAppointments) {
-            if (data.upcomingAppointments.length > 0) {
+        // Update stats cards if they exist
+        if (data.stats) {
+            this.updateStatCard('today-patients-card', data.stats.todayPatients || 0, 'users', "Today's Patients", 'bg-primary');
+            this.updateStatCard('completed-appointments-card', data.stats.completedAppointments || 0, 'check-circle', 'Completed', 'bg-success');
+            this.updateStatCard('pending-appointments-card', data.stats.pendingAppointments || 0, 'clock', 'Upcoming', 'bg-warning');
+            this.updateStatCard('cancelled-appointments-card', data.stats.cancelledAppointments || 0, 'x-circle', 'Cancelled', 'bg-danger');
+            this.updateStatCard('total-patients-card', data.totalPatients || 0, 'users', 'Total Patients', 'bg-info');
+            this.updateStatCard('total-prescriptions-card', data.stats.totalPrescriptions || 0, 'file-text', 'Prescriptions', 'bg-purple');
+        }
+
+        // Update today's appointments
+        const todayContainer = document.getElementById('today-appointments');
+        if (todayContainer) {
+            if (data.todayAppointments && data.todayAppointments.length > 0) {
+                todayContainer.innerHTML = data.todayAppointments.map(appointment =>
+                    this.createDoctorAppointmentCard(appointment)
+                ).join('');
+            } else {
+                todayContainer.innerHTML = this.createEmptyState('No appointments today', 'fas fa-calendar-check');
+            }
+        }
+
+        // Update upcoming appointments
+        const upcomingContainer = document.getElementById('upcoming-appointments');
+        if (upcomingContainer) {
+            if (data.upcomingAppointments && data.upcomingAppointments.length > 0) {
                 upcomingContainer.innerHTML = data.upcomingAppointments.map(appointment =>
                     this.createDoctorAppointmentCard(appointment)
                 ).join('');
@@ -337,7 +395,7 @@ class MediConnectApp {
         const prescriptionsContainer = document.getElementById('pharmacy-prescriptions');
         const pendingPrescriptions = data.pendingPrescriptions || [];
         if (pendingPrescriptions.length > 0) {
-            prescriptionsContainer.innerHTML = pendingPrescriptions.map(prescription => 
+            prescriptionsContainer.innerHTML = pendingPrescriptions.map(prescription =>
                 this.createPrescriptionCard(prescription, true)
             ).join('');
         } else {
@@ -348,7 +406,7 @@ class MediConnectApp {
         const lowStockContainer = document.getElementById('pharmacy-low-stock');
         const lowStockItems = data.lowStockItems || [];
         if (lowStockItems.length > 0) {
-            lowStockContainer.innerHTML = lowStockItems.map(item => 
+            lowStockContainer.innerHTML = lowStockItems.map(item =>
                 this.createInventoryCard(item)
             ).join('');
         } else {
@@ -359,10 +417,14 @@ class MediConnectApp {
     // Enhanced Card Creation Methods
     createPatientAppointmentCard(appointment, showDetails = false) {
         const date = new Date(appointment.appointmentDate);
-        const doctorName = appointment.doctor ? 
-            `Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName}` :
-            appointment.doctorName ? 
-                `Dr. ${appointment.doctorName}` : 
+        const doctorName = appointment.doctor ?
+            (appointment.doctor.user ?
+                `Dr. ${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName}` :
+                appointment.doctor.firstName ?
+                    `Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName}` :
+                    appointment.doctor.name || 'Unknown Doctor') :
+            appointment.doctorName ?
+                `Dr. ${appointment.doctorName}` :
                 'Unknown Doctor';
 
         const specialization = appointment.doctor?.specialization || appointment.doctorSpecialization || 'General';
@@ -384,8 +446,8 @@ class MediConnectApp {
                     </div>
                     <div class="appointment-actions">
                         ${status === 'SCHEDULED' ?
-                            `<button onclick="app.cancelAppointment('${appointment.id}')" class="btn btn-danger btn-sm">Cancel</button>` :
-                            ''}
+                    `<button onclick="app.cancelAppointment('${appointment.id}')" class="btn btn-danger btn-sm">Cancel</button>` :
+                    ''}
                     </div>
                 </div>
             `;
@@ -395,7 +457,7 @@ class MediConnectApp {
             <div class="appointment-item">
                 <h4>${doctorName}</h4>
                 <p><i class="fas fa-calendar"></i> ${date.toLocaleDateString()}</p>
-                <p><i class="fas fa-clock"></i> ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                <p><i class="fas fa-clock"></i> ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 <p><i class="fas fa-stethoscope"></i> ${specialization}</p>
                 <p><i class="fas fa-info-circle"></i> ${appointment.reason || 'Consultation'}</p>
                 <span class="status-badge status-${status.toLowerCase()}">${this.getStatusDisplay(status)}</span>
@@ -405,11 +467,15 @@ class MediConnectApp {
 
     createDoctorAppointmentCard(appointment) {
         const date = new Date(appointment.appointmentDate);
-        const patientName = appointment.patient ? 
-            `${appointment.patient.firstName} ${appointment.patient.lastName}` :
+        const patientName = appointment.patient ?
+            (appointment.patient.user ?
+                `${appointment.patient.user.firstName} ${appointment.patient.user.lastName}` :
+                appointment.patient.firstName ?
+                    `${appointment.patient.firstName} ${appointment.patient.lastName}` :
+                    appointment.patient.name || 'Unknown Patient') :
             appointment.patientName || 'Unknown Patient';
 
-        const patientEmail = appointment.patient?.email || appointment.patientEmail || 'Not available';
+        const patientEmail = appointment.patient?.user?.email || appointment.patient?.email || appointment.patientEmail || 'Not available';
         const patientPhone = appointment.patient?.phone || appointment.patientPhone || 'Not available';
         const status = appointment.status || 'SCHEDULED';
 
@@ -427,15 +493,15 @@ class MediConnectApp {
                     <p><strong>Status:</strong> <span class="status ${status.toLowerCase()}">${this.getStatusDisplay(status)}</span></p>
                 </div>
                 <div class="appointment-actions">
-                    ${status === 'SCHEDULED' ? 
-                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CONFIRMED')" class="btn btn-success btn-sm">Confirm</button>` : 
-                        ''}
-                    ${status === 'CONFIRMED' ? 
-                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'COMPLETED')" class="btn btn-primary btn-sm">Complete</button>` : 
-                        ''}
-                    ${(status === 'SCHEDULED' || status === 'CONFIRMED') ? 
-                        `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CANCELLED')" class="btn btn-danger btn-sm">Cancel</button>` : 
-                        ''}
+                    ${status === 'SCHEDULED' ?
+                `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CONFIRMED')" class="btn btn-success btn-sm">Confirm</button>` :
+                ''}
+                    ${status === 'CONFIRMED' ?
+                `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'COMPLETED')" class="btn btn-primary btn-sm">Complete</button>` :
+                ''}
+                    ${(status === 'SCHEDULED' || status === 'CONFIRMED') ?
+                `<button onclick="app.updateAppointmentStatus('${appointment.id}', 'CANCELLED')" class="btn btn-danger btn-sm">Cancel</button>` :
+                ''}
                 </div>
             </div>
         `;
@@ -443,21 +509,29 @@ class MediConnectApp {
 
     createPrescriptionCard(prescription, isPharmacy = false) {
         const date = new Date(prescription.createdAt || prescription.date || Date.now());
-        const doctorName = prescription.doctor ? 
-            `Dr. ${prescription.doctor.firstName} ${prescription.doctor.lastName}` :
-            prescription.doctorName ? 
-                `Dr. ${prescription.doctorName}` : 
+        const doctorName = prescription.doctor ?
+            (prescription.doctor.user ?
+                `Dr. ${prescription.doctor.user.firstName} ${prescription.doctor.user.lastName}` :
+                prescription.doctor.firstName ?
+                    `Dr. ${prescription.doctor.firstName} ${prescription.doctor.lastName}` :
+                    prescription.doctor.name || 'Unknown Doctor') :
+            prescription.doctorName ?
+                `Dr. ${prescription.doctorName}` :
                 'Unknown Doctor';
-        
-        const patientName = isPharmacy && prescription.patient ? 
-            `${prescription.patient.firstName} ${prescription.patient.lastName}` :
-            isPharmacy && prescription.patientName ? 
+
+        const patientName = isPharmacy && prescription.patient ?
+            (prescription.patient.user ?
+                `${prescription.patient.user.firstName} ${prescription.patient.user.lastName}` :
+                prescription.patient.firstName ?
+                    `${prescription.patient.firstName} ${prescription.patient.lastName}` :
+                    prescription.patient.name || 'Unknown Patient') :
+            isPharmacy && prescription.patientName ?
                 prescription.patientName : '';
-        
-        const medicationCount = prescription.medications ? 
-            prescription.medications.length : 
+
+        const medicationCount = prescription.medications ?
+            prescription.medications.length :
             prescription.medicationCount || 0;
-        
+
         const status = prescription.status || 'ACTIVE';
 
         return `
@@ -504,7 +578,7 @@ class MediConnectApp {
             return;
         }
 
-        container.innerHTML = appointments.map(appointment => 
+        container.innerHTML = appointments.map(appointment =>
             this.createPatientAppointmentCard(appointment, true)
         ).join('');
     }
@@ -527,7 +601,7 @@ class MediConnectApp {
             return;
         }
 
-        container.innerHTML = upcoming.map(appointment => 
+        container.innerHTML = upcoming.map(appointment =>
             this.createPatientAppointmentCard(appointment, false)
         ).join('');
     }
@@ -537,7 +611,7 @@ class MediConnectApp {
         if (!container) return;
 
         // Filter active prescriptions
-        const activePrescriptions = prescriptions.filter(presc => 
+        const activePrescriptions = prescriptions.filter(presc =>
             presc.status === 'ACTIVE' || presc.status === 'PENDING'
         );
 
@@ -546,7 +620,7 @@ class MediConnectApp {
             return;
         }
 
-        container.innerHTML = activePrescriptions.map(prescription => 
+        container.innerHTML = activePrescriptions.map(prescription =>
             this.createPrescriptionCard(prescription)
         ).join('');
     }
@@ -560,7 +634,7 @@ class MediConnectApp {
             return;
         }
 
-        container.innerHTML = appointments.map(appointment => 
+        container.innerHTML = appointments.map(appointment =>
             this.createDoctorAppointmentCard(appointment)
         ).join('');
     }
@@ -574,7 +648,7 @@ class MediConnectApp {
             return;
         }
 
-        container.innerHTML = appointments.map(appointment => 
+        container.innerHTML = appointments.map(appointment =>
             this.createDoctorAppointmentCard(appointment)
         ).join('');
     }
@@ -597,7 +671,12 @@ class MediConnectApp {
     showDashboard(role) {
         const dashboardId = role.toLowerCase() + '-dashboard';
         this.showPage(dashboardId);
-        
+
+        // Initialize chatbot when user logs in
+        if (typeof initializeChatbot === 'function') {
+            initializeChatbot();
+        }
+
         // Load dashboard data
         switch (role) {
             case 'PATIENT':
@@ -663,7 +742,7 @@ class MediConnectApp {
                 const formData = new FormData(loginForm);
                 const email = formData.get('email');
                 const password = formData.get('password');
-                
+
                 await this.login(email, password);
             });
         }
@@ -674,7 +753,7 @@ class MediConnectApp {
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(registerForm);
-                
+
                 const registerData = {
                     email: formData.get('email'),
                     firstName: formData.get('firstName'),
@@ -690,7 +769,7 @@ class MediConnectApp {
                     pharmacyName: formData.get('pharmacyName') || null,
                     address: formData.get('address') || null
                 };
-                
+
                 await this.register(registerData);
             });
         }
@@ -701,18 +780,18 @@ class MediConnectApp {
             bookAppointmentForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(bookAppointmentForm);
-                
+
                 const appointmentDate = formData.get('appointmentDate');
                 const appointmentTime = formData.get('appointmentTime');
                 const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
-                
+
                 const appointmentData = {
                     doctorId: formData.get('doctorId'),
                     appointmentDate: appointmentDateTime.toISOString(),
                     appointmentType: formData.get('appointmentType'),
                     reason: formData.get('reason')
                 };
-                
+
                 await this.bookAppointment(appointmentData);
             });
         }
@@ -812,12 +891,35 @@ class MediConnectApp {
             if (response.ok) {
                 const doctors = await response.json();
                 const doctorSelect = document.getElementById('appointment-doctor');
-                
+
+                if (!doctorSelect) {
+                    console.error('Doctor select element not found!');
+                    return;
+                }
+
                 doctorSelect.innerHTML = '<option value="">Choose a doctor...</option>';
+                
+                if (!doctors || doctors.length === 0) {
+                    doctorSelect.innerHTML += '<option value="">No doctors available</option>';
+                    return;
+                }
+
                 doctors.forEach(doctor => {
                     const option = document.createElement('option');
                     option.value = doctor.id;
-                    option.textContent = `${doctor.firstName} ${doctor.lastName} - ${doctor.specialization || 'General'}`;
+                    
+                    // Handle different possible response structures
+                    let doctorName = 'Unknown Doctor';
+                    if (doctor.name) {
+                        doctorName = doctor.name;
+                    } else if (doctor.firstName && doctor.lastName) {
+                        doctorName = `Dr. ${doctor.firstName} ${doctor.lastName}`;
+                    } else if (doctor.user && doctor.user.firstName && doctor.user.lastName) {
+                        doctorName = `Dr. ${doctor.user.firstName} ${doctor.user.lastName}`;
+                    }
+                    
+                    const specialization = doctor.specialization || 'General';
+                    option.textContent = `${doctorName} - ${specialization}`;
                     doctorSelect.appendChild(option);
                 });
             } else {
@@ -839,6 +941,14 @@ function showRegister() {
     app.showPage('register');
 }
 
+function showAbout() {
+    app.showPage('about');
+}
+
+function showLanding() {
+    app.showPage('landing');
+}
+
 function logout() {
     app.logout();
 }
@@ -846,7 +956,7 @@ function logout() {
 function showBookAppointment() {
     app.showPage('book-appointment');
     app.loadDoctors();
-    
+
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('appointment-date').min = today;
@@ -859,12 +969,12 @@ function showPatientDashboard() {
 function toggleRoleFields() {
     const role = document.getElementById('register-role').value;
     const roleFields = document.querySelectorAll('.role-fields');
-    
+
     // Hide all role fields
     roleFields.forEach(field => {
         field.style.display = 'none';
     });
-    
+
     // Show relevant role fields
     if (role) {
         const targetField = document.getElementById(role.toLowerCase() + '-fields');

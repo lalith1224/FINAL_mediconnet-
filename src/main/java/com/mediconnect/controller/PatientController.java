@@ -102,13 +102,41 @@ public class PatientController {
             patientSummary.put("firstName", patient.getUser().getFirstName());
             patientSummary.put("lastName", patient.getUser().getLastName());
             patientSummary.put("email", patient.getUser().getEmail());
+            
+            // Also include user object for compatibility
+            Map<String, Object> userSummary = new HashMap<>();
+            userSummary.put("firstName", patient.getUser().getFirstName());
+            userSummary.put("lastName", patient.getUser().getLastName());
+            userSummary.put("email", patient.getUser().getEmail());
+            patientSummary.put("user", userSummary);
         }
 
         Map<String, Object> dashboard = new HashMap<>();
+        // Get appointment statistics
+        List<Appointment> allAppointments = appointmentService.findByPatientId(patient.getId());
+        long completedAppointments = allAppointments.stream()
+                .filter(a -> Appointment.AppointmentStatus.COMPLETED.equals(a.getStatus()))
+                .count();
+        long upcomingAppointmentsCount = allAppointments.stream()
+                .filter(a -> Appointment.AppointmentStatus.SCHEDULED.equals(a.getStatus()) || 
+                           Appointment.AppointmentStatus.CONFIRMED.equals(a.getStatus()))
+                .count();
+        long cancelledAppointments = allAppointments.stream()
+                .filter(a -> Appointment.AppointmentStatus.CANCELLED.equals(a.getStatus()))
+                .count();
+
+        // Add statistics to dashboard
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("total", allAppointments.size());
+        stats.put("completed", completedAppointments);
+        stats.put("upcoming", upcomingAppointmentsCount);
+        stats.put("cancelled", cancelledAppointments);
+
         dashboard.put("patient", patientSummary);
         dashboard.put("upcomingAppointments", upcomingDtos);
         dashboard.put("activePrescriptions", prescriptionDtos);
-        dashboard.put("totalAppointments", appointmentService.findByPatientId(patient.getId()).size());
+        dashboard.put("appointmentStats", stats);
+        dashboard.put("totalAppointments", allAppointments.size());
         dashboard.put("totalPrescriptions", prescriptionService.findByPatientId(patient.getId()).size());
 
         return ResponseEntity.ok(dashboard);
